@@ -386,7 +386,6 @@
       display: block;
     }
 
-    /* Neuer Counter unter dem Icon */
     .habit-counter {
       font-size: 0.75rem;
       text-align: center;
@@ -561,7 +560,7 @@
     </div>
 
     <div id="setupContainer" class="setup-inner">
-      <input id="setupTitle" class="setup-title-input" placeholder="Titel" />
+      <input id="setupTitle" class="setup-title-input" placeholder="Habit-Titel" />
 
       <div class="setup-row">
         <div class="icon-label"><i data-lucide="toggle-right"></i></div>
@@ -638,8 +637,8 @@
     <div class="progress-row">
       <div class="username-label">JP</div>
       <div class="progress-track">
-        <div class="progress-fill" style="background:var(--accent-purple);width:70%;"></div>
-        <div class="progress-icon" style="left:74%;">
+        <div id="progressFillJP" class="progress-fill" style="background:var(--accent-purple);width:0%;"></div>
+        <div id="progressIconJP" class="progress-icon" style="left:0%;">
           <i data-lucide="trophy"></i>
         </div>
       </div>
@@ -648,8 +647,8 @@
     <div class="progress-row">
       <div class="username-label">Giulia</div>
       <div class="progress-track">
-        <div class="progress-fill" style="background:var(--accent-red);width:30%;"></div>
-        <div class="progress-icon" style="left:34%;">
+        <div id="progressFillGiulia" class="progress-fill" style="background:var(--accent-red);width:0%;"></div>
+        <div id="progressIconGiulia" class="progress-icon" style="left:0%;">
           <i data-lucide="snail"></i>
         </div>
       </div>
@@ -705,7 +704,7 @@
   const icons = ["map-pin","timer","flag","heart","dumbbell","book-open"];
   const motivationMessages = [
     "Du warst heute stark.",
-    "Genau so geht’s.",
+    "Genau so geht's.",
     "Wieder ein kleiner Sieg.",
     "Heute hast du geliefert.",
     "Das war klar und fokussiert.",
@@ -718,12 +717,12 @@
 
   function getTodayDayIndex() {
     const d = new Date();
-    return ((d.getDay() + 6) % 7) + 1;
+    return ((d.getDay() + 6) % 7) + 1; // 1=Mo..7=So
   }
 
   function getWeekId(date) {
     const d = new Date(date);
-    const day = (d.getDay() + 6) % 7;
+    const day = (d.getDay() + 6) % 7; // 0=Mo..6=So
     d.setDate(d.getDate() - day);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2,"0");
@@ -769,27 +768,28 @@
     }
   }
 
+  // Beispiel-Habits, aktuell alle user: "JP"
   let habits = [
     {title:"",type:"standard",icon:"map-pin",minutes:5,
      done:false,timerRunning:false,timerFinished:false,remainingSeconds:0,
      expanded:false,subtasksEnabled:false,subtasks:[],
      qrVerified:false,
      scheduleMode:"days",days:[1,2,3,4,5],weeklyTarget:5,weeklyProgress:0,
-     completedDays:[],weekId:null},
+     completedDays:[],weekId:null,user:"JP"},
 
     {title:"",type:"standard",icon:"map-pin",minutes:5,
      done:false,timerRunning:false,timerFinished:false,remainingSeconds:0,
      expanded:false,subtasksEnabled:false,subtasks:[],
      qrVerified:false,
      scheduleMode:"days",days:[1,3,5],weeklyTarget:3,weeklyProgress:0,
-     completedDays:[],weekId:null},
+     completedDays:[],weekId:null,user:"JP"},
 
     {title:"",type:"standard",icon:"map-pin",minutes:5,
      done:false,timerRunning:false,timerFinished:false,remainingSeconds:0,
      expanded:false,subtasksEnabled:false,subtasks:[],
      qrVerified:false,
      scheduleMode:"count",days:[],weeklyTarget:3,weeklyProgress:0,
-     completedDays:[],weekId:null},
+     completedDays:[],weekId:null,user:"JP"},
   ];
 
   let timers      = [null,null,null];
@@ -801,6 +801,46 @@
     el.classList.remove("morphing");
     void el.offsetWidth;
     el.classList.add("morphing");
+  }
+
+  // Effort-basierter Vergleich: Summe weeklyProgress pro User
+  function getEffortForUser(userName) {
+    return habits.reduce((sum, h) => {
+      if (h.user === userName) {
+        return sum + (h.weeklyProgress || 0);
+      }
+      return sum;
+    }, 0);
+  }
+
+  function updateProgressBars() {
+    const users = [
+      { name: "JP",     fillId: "progressFillJP",     iconId: "progressIconJP" },
+      { name: "Giulia", fillId: "progressFillGiulia", iconId: "progressIconGiulia" }
+    ];
+
+    const efforts = users.map(u => ({
+      ...u,
+      effort: getEffortForUser(u.name)
+    }));
+
+    const maxEffort = efforts.reduce((max, u) =>
+      u.effort > max ? u.effort : max
+    , 0);
+
+    efforts.forEach(u => {
+      const fillEl = document.getElementById(u.fillId);
+      const iconEl = document.getElementById(u.iconId);
+      if (!fillEl || !iconEl) return;
+
+      let pct = 0;
+      if (maxEffort > 0) {
+        pct = (u.effort / maxEffort) * 100;
+      }
+
+      fillEl.style.width = pct + "%";
+      iconEl.style.left  = pct + "%";
+    });
   }
 
   document.getElementById("goSetup").onclick = () => {
@@ -818,7 +858,7 @@
 
     if (mode === "days") {
       if (!h.days || !h.days.length) {
-        h.days = [1,2,3,4,5];
+        h.days = [1,2,3,4,5]; // default Mo–Fr
       }
       dayPills.forEach(pill => {
         const d = parseInt(pill.dataset.day,10);
@@ -973,6 +1013,7 @@
       mainView.classList.add("active");
       renderHabits(false);
       lucide.createIcons();
+      updateProgressBars();
     }
   };
 
@@ -1005,6 +1046,7 @@
         </div>
       `;
       lucide.createIcons();
+      updateProgressBars();
       return;
     }
 
@@ -1016,10 +1058,6 @@
 
       const row = document.createElement("div");
       row.className = "habit-row";
-
-      /* =============================
-         ICON + COUNTER (NEU)
-      ============================== */
 
       const counterText =
         h.scheduleMode === "days"
@@ -1174,10 +1212,12 @@
         titleEl.style.opacity = st.done ? 0.5 : 1;
 
         lucide.createIcons();
+        updateProgressBars();
       };
     });
 
     lucide.createIcons();
+    updateProgressBars();
   }
 
   function completeHabit(h, cardEl) {
@@ -1194,10 +1234,14 @@
       h.weeklyProgress = progress + 1;
     }
 
-    cardEl.classList.add("pop-out");
-    setTimeout(() => {
-      renderHabits(true);
-    }, 220);
+    if (isHabitDoneForWeek(h)) {
+      cardEl.classList.add("pop-out");
+      setTimeout(() => {
+        renderHabits(true);
+      }, 220);
+    } else {
+      renderHabits(false);
+    }
   }
 
   function startTimer(index) {
@@ -1262,7 +1306,42 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
+    updateProgressBars();
   });
+  
+  function applyTestEffort() {
+  // Beispiel: Giulia bekommt 3 Effortpunkte
+  habits.push({
+    title: "Testhabit Giulia",
+    type: "standard",
+    icon: "map-pin",
+    scheduleMode: "count",
+    weeklyTarget: 3,
+    weeklyProgress: 2,
+    days: [],
+    completedDays: [],
+    subtasksEnabled: false,
+    subtasks: [],
+    timerRunning: false,
+    timerFinished: false,
+    qrVerified: false,
+    remainingSeconds: 0,
+    expanded: false,
+    user: "Giulia",
+    weekId: getWeekId(new Date())
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  lucide.createIcons();
+
+  // Testdaten aktivieren
+  applyTestEffort();
+
+  updateProgressBars();
+});
+  
+  
 </script>
 
 </body>
