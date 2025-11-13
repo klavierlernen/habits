@@ -228,7 +228,7 @@
     /* Views */
 
     .view {
-      position: absolute;
+      position: absolute; right:0;
       inset: 0;
       padding: 1.5rem 1.25rem 6rem;
       display: flex;
@@ -271,7 +271,7 @@
     }
 
     .bottom-button-wrapper {
-      position: absolute;
+      position: absolute; right:0;
       left: 0;
       right: 0;
       bottom: 1.5rem;
@@ -497,13 +497,13 @@
     }
 
     .progress-fill {
-      position: absolute;
+      position: absolute; right:0;
       inset: 0;
       border-radius: 999px;
     }
 
     .progress-icon {
-      position: absolute;
+      position: absolute; right:0;
       top: 50%;
       transform: translate(-50%, -50%);
       margin-left: 4px;
@@ -1136,28 +1136,24 @@
       u.effort > max ? u.effort : max
     , 0);
 
-    efforts.forEach(u => {
+        efforts.forEach(u => {
       const fillEl = document.getElementById(u.fillId);
       const iconEl = document.getElementById(u.iconId);
       if (!fillEl || !iconEl) return;
 
-      let pct = 0;
-      if (maxEffort > 0) {
-        pct = (u.effort / maxEffort) * 100;
-      }
+      // dynamic leader icon
+      const leaderEffort = Math.max(...efforts.map(e=>e.effort));
+      const isLeader = u.effort === leaderEffort && leaderEffort>0;
+      iconEl.innerHTML = isLeader ? '<i data-lucide="trophy"></i>' : '<i data-lucide="turtle"></i>';
+      lucide.createIcons();
 
+      let pct = 0;
+      if (leaderEffort > 0) {
+        pct = (u.effort / leaderEffort) * 100;
+      }
       animateXPProgress(fillEl, iconEl, pct);
       animateSpeedlines();
-    });
-    animateProgressIcons();
-  }
-
-  document.getElementById("goSetup").onclick = () => {
-    animateLoginToSetup(() => {
-      loginView.classList.remove("active");
-      setupView.classList.add("active");
-      renderSetup(true);
-    });
+    }););
   };
 
   function updateScheduleUI(mode, h) {
