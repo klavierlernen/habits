@@ -7,6 +7,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- ERUDA: mobile Console -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init(); console.log("ERUDA aktiviert.");</script>
+
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -41,6 +45,14 @@
       border-radius: 8px;
       cursor: pointer;
       margin-top: 12px;
+      font-size: 16px;
+    }
+    button.secondary {
+      background: #444;
+    }
+    #status {
+      margin-top: 10px;
+      min-height: 22px;
     }
   </style>
 </head>
@@ -54,50 +66,66 @@
   <input id="password" type="password" placeholder="Passwort">
 
   <button onclick="login()">Login</button>
-  <button onclick="signup()" style="background:#444;">Registrieren</button>
+  <button class="secondary" onclick="signup()">Registrieren</button>
 
   <p id="status"></p>
 </div>
 
 <script>
+  console.log("Initialisiere Supabase…");
+
   const supabase = supabase.createClient(
     "https://gglgenarpskajkaanknk.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   );
 
+  console.log("Supabase Client geladen:", supabase);
+
   async function login() {
+    console.log("Login Versuch…");
+
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
     const status = document.getElementById("status");
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
+
+    console.log("Login Antwort:", data, error);
 
     if (error) {
       status.textContent = error.message;
       status.style.color = "red";
     } else {
-      window.location.href = "index.html";
+      status.textContent = "Login erfolgreich!";
+      status.style.color = "green";
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 500);
     }
   }
 
   async function signup() {
+    console.log("Signup Versuch…");
+
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
     const status = document.getElementById("status");
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password
     });
+
+    console.log("Signup Antwort:", data, error);
 
     if (error) {
       status.textContent = error.message;
       status.style.color = "red";
     } else {
-      status.textContent = "Registrierung erfolgreich. Jetzt einloggen.";
+      status.textContent = "Registrierung erfolgreich! Jetzt einloggen.";
       status.style.color = "green";
     }
   }
