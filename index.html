@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Habit App – Login</title>
 
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- ERUDA: mobile Console -->
+  <!-- Eruda Konsole -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init(); console.log("ERUDA aktiviert.");</script>
 
@@ -74,12 +75,12 @@
 <script>
   console.log("Initialisiere Supabase…");
 
-  const supabase = supabase.createClient(
+  const client = supabase.createClient(
     "https://gglgenarpskajkaanknk.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   );
 
-  console.log("Supabase Client geladen:", supabase);
+  console.log("Supabase Client geladen:", client);
 
   async function login() {
     console.log("Login Versuch…");
@@ -88,7 +89,7 @@
     const password = document.getElementById("password").value;
     const status = document.getElementById("status");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await client.auth.signInWithPassword({
       email,
       password
     });
@@ -114,7 +115,7 @@
     const password = document.getElementById("password").value;
     const status = document.getElementById("status");
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await client.auth.signUp({
       email,
       password
     });
