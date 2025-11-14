@@ -3,95 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Corbado Login Test (Debug)</title>
+  <title>Corbado Login Test (Fixed)</title>
 
-  <!-- Corbado Web-JS über jsDelivr (stabiler als unpkg) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@corbado/web-js/dist/bundle/index.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/@corbado/web-js/dist/bundle/index.js"></script>
-
-  <!-- ERUDA: mobile JS Konsole -->
+  <!-- Eruda Debug Console -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>
-    eruda.init();
-    console.log("ERUDA gestartet – mobile Konsole aktiv.");
-  </script>
+  <script>eruda.init();</script>
+
+  <!-- Corbado UMD Build (richtig!) -->
+  <link rel="stylesheet" href="https://cdn.corbado.com/web-js/latest/bundle/index.css"/>
+  <script src="https://cdn.corbado.com/web-js/latest/bundle/index.umd.js"></script>
 
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: #fafafa;
-      margin: 0;
-    }
-    #box {
-      width: 100%;
-      max-width: 380px;
-      background: #fff;
-      padding: 22px;
-      border-radius: 14px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-    #corbadoContainer {
-      margin-top: 20px;
-      min-height: 140px;
-    }
+    body { font-family: system-ui; padding: 20px; }
+    button { padding: 14px; width: 100%; }
+    #corbadoContainer { margin-top:20px; min-height:150px; }
   </style>
 </head>
 
 <body>
 
-<div id="box">
-  <h2>Login</h2>
+<h2>Login Test</h2>
 
-  <button id="loginStartBtn" style="width:100%; padding:14px; font-size:16px;">
-    Login starten
-  </button>
-
-  <div id="corbadoContainer"></div>
-</div>
+<button id="loginBtn">Login starten</button>
+<div id="corbadoContainer"></div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  console.log("DOM geladen – Initialisiere Corbado…");
+  console.log("DOM geladen — Initialisiere Corbado UMD…");
+  console.log("Corbado global:", window.Corbado);
 
   try {
     const cb = new Corbado({
       projectID: "pro-8203476425584199588",
       apiKey: "corbado1_GHlBk2HgxuV6dBaKT2QZTfJJFxdleU",
-      redirectUrl: "https://lillyapp.github.io/habits/"  // MUSS HTTPS sein!
+      redirectUrl: "https://lillyapp.github.io/habits/"
     });
 
-    console.log("Corbado Objekt erzeugt:", cb);
+    console.log("Corbado initialisiert:", cb);
 
-    const btn = document.getElementById("loginStartBtn");
-
-    btn.onclick = () => {
-      console.log("Login Button geklickt – mountLogin startet…");
+    document.getElementById("loginBtn").onclick = () => {
+      console.log("Login Button geklickt 🚀");
 
       cb.mountLogin({
         containerId: "corbadoContainer",
         mode: "login",
-        onLoggedIn: (user) => {
+        onLoggedIn: user => {
           console.log("LOGIN ERFOLGREICH:", user);
-          alert("Login erfolgreich!\nUser ID: " + user.sub);
+          alert("Login OK: " + user.sub);
         },
-        onError: (err) => {
-          console.error("Corbado Fehler:", err);
-          alert("Fehler beim Login. Siehe Konsole.");
+        onError: err => {
+          console.error("LOGIN FEHLER:", err);
         }
       });
     };
 
   } catch (err) {
-    console.error("Corbado konnte NICHT initialisiert werden:", err);
+    console.error("FEHLER BEI INIT:", err);
   }
 
 });
