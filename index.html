@@ -2058,6 +2058,51 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 </script>
+<script>
+function attachSetupButtonHandler() {
+  const btn = document.getElementById("setupNextBtn");
+  if (!btn) {
+    console.log("[SETUP] Button nicht da – retry in 200ms…");
+    setTimeout(attachSetupButtonHandler, 200);
+    return;
+  }
+
+  console.log("[SETUP] Handler an Button gebunden.");
+
+  btn.addEventListener("click", async () => {
+    console.log("[SETUP] Klick erkannt → speichere Habit…");
+
+    const session = await client.auth.getSession();
+    const user_id = session.data.session.user.id;
+
+    // ALLE Setup-Felder holen
+    const fields = [
+      document.getElementById("setup-habit-1"),
+      document.getElementById("setup-habit-2"),
+      document.getElementById("setup-habit-3")
+    ];
+
+    for (let f of fields) {
+      if (!f) continue;
+
+      const value = f.value.trim();
+      if (!value) continue;
+
+      console.log("[SETUP] Speichere:", value);
+
+      await client.from("habits").insert({
+        user_id: user_id,
+        name: value
+      });
+    }
+
+    console.log("[SETUP] Alle Habits gespeichert.");
+  });
+}
+
+// Starte Setup-Button-Bindung, sobald DOM steht
+document.addEventListener("DOMContentLoaded", attachSetupButtonHandler);
+</script>
 <!-- === DEBUG SYSTEM === -->
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>
