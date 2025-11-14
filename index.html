@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Habit Cards mit GPS</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
   <!-- GSAP -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -14,7 +14,7 @@
   <style>
     :root {
       --page-padding: 16px;
-      --card-height: calc((100vh - 16px*4 - 60px) / 3);
+      --card-height: calc((100vh - 16px*4 - 60px - env(safe-area-inset-bottom)) / 3);
     }
 
     * {
@@ -27,7 +27,8 @@
       font-family: system-ui, -apple-system, sans-serif;
       background: #fff;
       height: 100vh;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: hidden;
     }
 
     .page {
@@ -35,7 +36,9 @@
       display: flex;
       flex-direction: column;
       padding: var(--page-padding);
+      padding-bottom: calc(var(--page-padding) + env(safe-area-inset-bottom));
       gap: var(--page-padding);
+      box-sizing: border-box;
     }
 
     .cards {
@@ -57,7 +60,6 @@
       border-radius: 24px;
       background: #e4e4e4;
       padding: 24px;
-
       transform-style: preserve-3d;
       opacity: 0;
       cursor: pointer;
@@ -71,14 +73,10 @@
       padding: 24px;
     }
 
-    .front {
-      background: transparent;
-    }
-
+    .front { background: transparent; }
     .back {
       background: #e4e4e4;
       transform: rotateY(180deg);
-
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -116,9 +114,7 @@
       color: #666;
     }
 
-    .card-input::placeholder {
-      color: #999;
-    }
+    .card-input::placeholder { color: #999; }
 
     .gps-icon {
       position: absolute;
@@ -135,12 +131,15 @@
 
     .bottom-bar {
       width: 100%;
-      height: 60px;
+      height: calc(60px + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      display: flex;
+      align-items: center;
     }
 
     .add-btn {
       width: 100%;
-      height: 100%;
+      height: 60px;
       border: none;
       border-radius: 999px;
       background: #000;
@@ -169,11 +168,10 @@
 
     const activeColors = ["#3b82f6", "#f97316", "#22c55e"];
     const titleColors  = ["#1e3a8a", "#b45309", "#166534"];
-
     const slotOrder = ["slot3", "slot2", "slot1"];
+
     let count = 0;
 
-    // GEOCODING (Adresse → Koordinaten)
     async function geocodeAddress(address) {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
       const res = await fetch(url, { headers: { "User-Agent": "HabitApp/1.0" }});
@@ -182,31 +180,28 @@
       return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
     }
 
-    // Entfernung (km)
     function distance(lat1, lon1, lat2, lon2) {
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI/180;
       const dLon = (lon2 - lon1) * Math.PI/180;
-
       const a =
         Math.sin(dLat/2)**2 +
-        Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+        Math.cos(lat1*Math.PI/180) *
+        Math.cos(lat2*Math.PI/180) *
         Math.sin(dLon/2)**2;
-
-      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // Wiggle
     function wiggle(card) {
       gsap.fromTo(card, { x: -6 }, { x: 6, duration: 0.08, repeat: 5, yoyo: true });
     }
 
-    // Farben setzen
     function activateCard(card, input, i) {
       card.style.background = activeColors[i];
       input.style.color = titleColors[i];
       card.dataset.active = "true";
     }
+
     function deactivateCard(card, input) {
       card.style.background = "#e4e4e4";
       input.style.color = "#666";
@@ -240,27 +235,27 @@
       slot.appendChild(card);
       lucide.createIcons();
 
-      // FALL-Animation
+      const input = card.querySelector(".card-input");
+      const gpsBtn = card.querySelector(".gps-icon");
+      const addressInput = card.querySelector(".address-input");
+
       gsap.fromTo(card,
         { y: -300, rotate: gsap.utils.random(-6, 6), opacity: 0 },
         { y: 0, rotate: 0, opacity: 1, duration: 0.8, ease: "back.out(1.7)" }
       );
 
-      const input = card.querySelector(".card-input");
-      const gpsBtn = card.querySelector(".gps-icon");
-      const addressInput = card.querySelector(".address-input");
-
-      // GPS Icon nur im Eingabefeld sichtbar
       input.addEventListener("focus", () => gpsBtn.style.opacity = 1);
       input.addEventListener("blur",  () => gpsBtn.style.opacity = 0);
 
-      // Flip zu GPS-Konfiguration
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") input.blur();
+      });
+
       gpsBtn.addEventListener("click", e => {
         e.stopPropagation();
         gsap.to(card, { rotationY: 180, duration: 0.5 });
       });
 
-      // Adresse speichern & Geocoden
       addressInput.addEventListener("keydown", async e => {
         if (e.key === "Enter") {
           e.preventDefault();
@@ -277,16 +272,14 @@
         }
       });
 
-      // Titel bestätigen per Enter
-      input.addEventListener("keydown", e => {
-        if (e.key === "Enter") input.blur();
-      });
-
-      // Karte anklicken → GPS-Modus oder Normalmodus
       card.addEventListener("click", e => {
         if (e.target === input || e.target === gpsBtn) return;
 
-        // GPS-Aufgabe
+        const titleIsEmpty =
+          !input.value ||
+          input.value.trim() === "" ||
+          input.value === "Titel eingeben...";
+
         if (card.dataset.gps === "true") {
           navigator.geolocation.getCurrentPosition(pos => {
             const userLat = pos.coords.latitude;
@@ -298,6 +291,7 @@
             const dist = distance(userLat, userLon, targetLat, targetLon);
 
             if (dist < 0.05) {
+              if (titleIsEmpty) { wiggle(card); return; }
               activateCard(card, input, card.dataset.index);
             } else {
               wiggle(card);
@@ -306,7 +300,11 @@
           return;
         }
 
-        // Normaler Toggle
+        if (titleIsEmpty) {
+          wiggle(card);
+          return;
+        }
+
         const i = parseInt(card.dataset.index);
         const isActive = card.dataset.active === "true";
         isActive ? deactivateCard(card, input) : activateCard(card, input, i);
@@ -315,5 +313,6 @@
       count++;
     });
   </script>
+
 </body>
 </html>
