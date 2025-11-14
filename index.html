@@ -1762,7 +1762,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <script>
 /* ============================================================
-   SUPABASE INITIALISIERUNG
+   SUPABASE CLIENT
 ============================================================ */
 const client = supabase.createClient(
   "https://gglgenarpskajkaanknk.supabase.co",
@@ -1771,22 +1771,22 @@ const client = supabase.createClient(
 
 
 /* ============================================================
-   LOGIN-VIEW STEP LOGIK + REGISTRIERUNG
+   LOGIN / SIGNUP / CONFIRMATION
 ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
   const loginView = document.getElementById("loginView");
   const setupView = document.getElementById("setupView");
-  const mainView = document.getElementById("mainView");
-  const loginBtn = document.getElementById("goSetup");
+  const mainView  = document.getElementById("mainView");
+  const loginBtn  = document.getElementById("goSetup");
 
-  if (!loginBtn || !loginView) return;
-
+  if (!loginBtn) return;
   loginBtn.onclick = null;
   loginBtn.textContent = "Login";
 
   let step = 0;
   let email = "";
 
+  // Wrapper für Inputs
   const wrapper = document.createElement("div");
   wrapper.style.display = "none";
   wrapper.style.marginBottom = "12px";
@@ -1796,13 +1796,13 @@ document.addEventListener("DOMContentLoaded", () => {
   status.style.color = "red";
   status.style.fontSize = "0.8rem";
 
-  function styleInput(i) {
-    i.style.width = "100%";
-    i.style.padding = "12px";
-    i.style.marginBottom = "10px";
-    i.style.border = "1px solid #ccc";
-    i.style.borderRadius = "12px";
-    i.style.background = "#f0f0f0";
+  function styleInput(el) {
+    el.style.width = "100%";
+    el.style.padding = "12px";
+    el.style.marginBottom = "10px";
+    el.style.borderRadius = "12px";
+    el.style.border = "1px solid #ccc";
+    el.style.background = "#f0f0f0";
   }
 
   const emailInput = document.createElement("input");
@@ -1821,14 +1821,13 @@ document.addEventListener("DOMContentLoaded", () => {
   registerBtn.style.width = "100%";
   registerBtn.style.padding = "12px";
   registerBtn.style.borderRadius = "12px";
-  registerBtn.style.border = "none";
   registerBtn.style.background = "#444";
   registerBtn.style.color = "white";
   registerBtn.style.display = "none";
   loginBtn.parentNode.appendChild(registerBtn);
 
 
-  /* -------------------- LOGIN BUTTON -------------------- */
+  /* LOGIN BUTTON STEP LOGIK */
   loginBtn.onclick = async () => {
     status.textContent = "";
 
@@ -1845,15 +1844,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (step === 1) {
       if (!emailInput.value.includes("@")) {
-        status.textContent = "Bitte gültige E-Mail eingeben.";
+        status.textContent = "Bitte gültige E-Mail.";
         return;
       }
       email = emailInput.value;
-
       wrapper.innerHTML = "";
       wrapper.appendChild(passInput);
       wrapper.appendChild(status);
-
       loginBtn.textContent = "Einloggen";
       registerBtn.style.display = "block";
       step = 2;
@@ -1882,22 +1879,20 @@ document.addEventListener("DOMContentLoaded", () => {
       status.style.color = "green";
       status.textContent = "Login erfolgreich!";
 
-      setTimeout(() => {
-        animateLoginToSetup(() => {
-          loginView.classList.remove("active");
-          setupView.classList.add("active");
-          renderSetup(true);
-        });
+      setTimeout(async () => {
+        loginView.classList.remove("active");
+        setupView.classList.add("active");
+        renderSetup(true);
       }, 500);
     }
   };
 
 
-  /* -------------------- REGISTRIEREN BUTTON -------------------- */
+  /* REGISTRIEREN */
   registerBtn.onclick = async () => {
     status.textContent = "Registriere…";
 
-    const { data, error } = await client.auth.signUp({
+    const { error } = await client.auth.signUp({
       email,
       password: passInput.value
     });
@@ -1908,8 +1903,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     status.style.color = "green";
-    status.textContent = "Bitte bestätige deine E-Mail.";
-
+    status.textContent = "Bestätige deine E-Mail.";
     loginBtn.textContent = "Einloggen";
     registerBtn.style.display = "none";
     step = 2;
@@ -1918,28 +1912,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 /* ============================================================
-   AUTO-LOGIN (PWA-tauglich)
+   AUTOLOGIN (PWA)
 ============================================================ */
 document.addEventListener("DOMContentLoaded", async () => {
-  const loginView = document.getElementById("loginView");
-  const setupView = document.getElementById("setupView");
-  const mainView = document.getElementById("mainView");
-
   const { data } = await client.auth.getSession();
   if (!data.session) return;
-
   const user = data.session.user;
+
   if (!user.email_confirmed_at) return;
 
   const habits = await loadHabitsFromSupabase();
+  const configs = await loadHabitConfigs();
 
-  loginView.classList.remove("active");
+  // Views
+  document.getElementById("loginView").classList.remove("active");
 
   if (habits.length > 0) {
-    mainView.classList.add("active");
-    renderMainView(habits);
+    document.getElementById("mainView").classList.add("active");
+    renderMainView(habits, configs);
   } else {
-    setupView.classList.add("active");
+    document.getElementById("setupView").classList.add("active");
     renderSetup(true);
   }
 });
@@ -1959,21 +1951,15 @@ async function loadHabitsFromSupabase() {
     .eq("user_id", user_id)
     .order("id");
 
-  if (error) {
-    console.error("[HABITS] Fehler beim Laden:", error);
-    return [];
-  }
-
   return data || [];
 }
 
 
 /* ============================================================
-   HABITS SPEICHERN (3 Setup-Felder)
+   HABITS SPEICHERN (SETUP)
 ============================================================ */
 async function saveHabitsToSupabase() {
   const { data: session } = await client.auth.getSession();
-  if (!session.session) return;
   const user_id = session.session.user.id;
 
   const h1 = document.getElementById("setup-habit-1").value.trim();
@@ -1987,18 +1973,32 @@ async function saveHabitsToSupabase() {
   if (habits.length === 0) return;
 
   const inserts = habits.map(h => ({ user_id, name: h }));
-  const { error } = await client.from("habits").insert(inserts);
-
-  if (error) console.error(error);
+  await client.from("habits").insert(inserts);
 }
 
 
 /* ============================================================
-   HABIT CONFIG SPEICHERN / LADEN (optional)
+   HABIT CONFIGS LADEN
 ============================================================ */
-async function saveHabitConfig(habit_id, config) {
+async function loadHabitConfigs() {
   const { data: session } = await client.auth.getSession();
-  if (!session.session) return;
+  if (!session.session) return [];
+
+  const { data } = await client
+    .from("habit_configs")
+    .select("*")
+    .eq("user_id", session.session.user.id)
+    .order("order_position");
+
+  return data || [];
+}
+
+
+/* ============================================================
+   HABIT CONFIG SPEICHERN
+============================================================ */
+async function saveHabitConfig(habit_id, cfg) {
+  const { data: session } = await client.auth.getSession();
   const user_id = session.session.user.id;
 
   await client.from("habit_configs").delete().eq("habit_id", habit_id);
@@ -2006,29 +2006,14 @@ async function saveHabitConfig(habit_id, config) {
   return client.from("habit_configs").insert({
     user_id,
     habit_id,
-    type: config.type,
-    weekly_goal: config.weekly_goal,
-    selected_weekdays: config.selected_weekdays,
-    icon: config.icon,
-    color: config.color,
-    order_position: config.order
+    type: cfg.type,
+    weekly_goal: cfg.weekly_goal,
+    selected_weekdays: cfg.selected_weekdays,
+    icon: cfg.icon,
+    color: cfg.color,
+    order_position: cfg.order
   });
 }
-
-async function loadHabitConfigs() {
-  const { data: session } = await client.auth.getSession();
-  if (!session.session) return [];
-  const user_id = session.session.user.id;
-
-  const { data } = await client
-    .from("habit_configs")
-    .select("*")
-    .eq("user_id", user_id)
-    .order("order_position");
-
-  return data || [];
-}
-
 </script>
 <!-- === DEBUG SYSTEM === -->
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
