@@ -1880,5 +1880,56 @@ window.onload = () => {
   };
 };
 </script>
+<!-- === DEBUG SYSTEM === -->
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>
+  // Eruda starten
+  eruda.init();
+  console.log("DEBUG: Eruda Konsole aktiviert.");
+
+  // Globaler Fehlerfänger
+  window.onerror = function(msg, url, line, col, error) {
+    console.error("GLOBAL ERROR:", msg, "at", url, line + ":" + col, error);
+  };
+
+  // Promise-Fehler abfangen
+  window.addEventListener("unhandledrejection", (event) => {
+    console.error("UNHANDLED PROMISE REJECTION:", event.reason);
+  });
+
+  // Alle Clicks loggen
+  document.addEventListener("click", (e) => {
+    console.log("CLICK:", e.target);
+  });
+
+  // View-Wechsel loggen
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      if (m.attributeName === "class") {
+        if (m.target.classList.contains("active")) {
+          console.log("VIEW AKTIV:", m.target.id);
+        }
+      }
+    });
+  });
+
+  // Beobachte alle Views
+  window.onload = () => {
+    document.querySelectorAll("[id$='View'], .view, section").forEach((el) => {
+      observer.observe(el, { attributes: true });
+    });
+    console.log("DEBUG: MutationObserver aktiv.");
+  };
+
+  // Supabase Debug Wrapper
+  function debugSupabaseCall(name, fn) {
+    console.log("SUPABASE CALL:", name);
+    return fn().then((res) => {
+      console.log("SUPABASE RESULT (" + name + "):", res);
+      return res;
+    });
+  }
+</script>
+<!-- === END DEBUG SYSTEM === -->
 </body>
 </html>
