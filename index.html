@@ -3,10 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Corbado Login Test</title>
+  <title>Corbado Login Test (Debug)</title>
 
+  <!-- Corbado Web-JS -->
   <link rel="stylesheet" href="https://unpkg.com/@corbado/web-js/dist/bundle/index.css"/>
   <script src="https://unpkg.com/@corbado/web-js/dist/bundle/index.js"></script>
+
+  <!-- ERUDA: mobile Developer Console -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>
+    eruda.init();
+    console.log("ERUDA gestartet – Konsole aktiv.");
+  </script>
 
   <style>
     body {
@@ -26,6 +34,10 @@
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 
@@ -33,24 +45,37 @@
 
 <div id="box">
   <h2>Login</h2>
-  <button id="loginStartBtn" style="width:100%; padding:12px;">Login starten</button>
 
-  <div id="corbadoContainer" style="margin-top:20px;"></div>
+  <button id="loginStartBtn" style="width:100%; padding:12px; font-size:16px;">
+    Login starten
+  </button>
+
+  <div id="corbadoContainer" style="margin-top:20px; min-height:100px;">
+    <!-- Corbado Login wird hier eingefügt -->
+  </div>
 </div>
 
 <script>
+  console.log("Initialisiere Corbado…");
+
   const cb = new Corbado({
     projectID: "pro-8203476425584199588",
     apiKey: "corbado1_GHlBk2HgxuV6dBaKT2QZTfJJFxdleU",
-    redirectUrl: "https://lillyapp.github.io/habits/"  // wichtig: HTTPS
+    redirectUrl: "https://lillyapp.github.io/habits/"
   });
 
-  document.getElementById("loginStartBtn").onclick = () => {
+  console.log("Corbado Objekt erstellt:", cb);
+
+  const btn = document.getElementById("loginStartBtn");
+  btn.onclick = () => {
+    console.log("Login Button geklickt – mountLogin wird ausgeführt…");
+
     cb.mountLogin({
       containerId: "corbadoContainer",
       mode: "login",
       onLoggedIn: (user) => {
-        alert("Login erfolgreich: " + user.sub);
+        console.log("LOGIN ERFOLGREICH!", user);
+        alert("Login erfolgreich!\nUser-ID: " + user.sub);
       }
     });
   };
