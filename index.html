@@ -1764,88 +1764,108 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Login-Logic gestartet…");
 
+  // Supabase
   const client = supabase.createClient(
     "https://gglgenarpskajkaanknk.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnbGdlbmFycHNrYWprYWFua25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwODA2NzAsImV4cCI6MjA3ODY1NjY3MH0.phVPaPpkiXJ0ncbRiBChpVBtY8gv0sm_MjlCJJnaSt4"
   );
 
   const loginBtn = document.getElementById("goSetup");
-  if (!loginBtn) {
-    console.error("LOGIN BUTTON NICHT GEFUNDEN!");
-    return;
-  }
-
-  // Falls App ihn überschreibt → wir überschreiben final
-  loginBtn.onclick = null;
-
-  const header = document.querySelector("#loginView .center-header");
-  if (!header) {
-    console.error("LOGIN HEADER NICHT GEFUNDEN!");
-    return;
-  }
+  const loginView = document.getElementById("loginView");
 
   let step = 0;
   let email = "";
 
+  /* --- Input-Container direkt oberhalb des Buttons --- */
   const wrapper = document.createElement("div");
   wrapper.style.display = "none";
-  header.appendChild(wrapper);
+  wrapper.style.marginBottom = "12px";
+  loginBtn.parentNode.insertBefore(wrapper, loginBtn);
 
+  /* E-Mail Input */
   const emailInput = document.createElement("input");
   emailInput.type = "email";
   emailInput.placeholder = "E-Mail";
   styleInput(emailInput);
 
+  /* Passwort Input */
   const passInput = document.createElement("input");
   passInput.type = "password";
   passInput.placeholder = "Passwort";
   styleInput(passInput);
 
+  /* Fehlertext */
   const status = document.createElement("p");
   status.style.color = "red";
   status.style.fontSize = "0.8rem";
   wrapper.appendChild(status);
 
+  /* Registrieren Button */
+  const registerBtn = document.createElement("button");
+  registerBtn.textContent = "Registrieren";
+  registerBtn.style.marginTop = "10px";
+  registerBtn.style.width = "100%";
+  registerBtn.style.padding = "12px";
+  registerBtn.style.borderRadius = "12px";
+  registerBtn.style.border = "none";
+  registerBtn.style.background = "#444";
+  registerBtn.style.color = "white";
+  registerBtn.style.display = "none";
+  loginBtn.parentNode.appendChild(registerBtn);
+
   function styleInput(el) {
     el.style.width = "100%";
     el.style.padding = "12px";
-    el.style.marginTop = "10px";
-    el.style.background = "#eee";
-    el.style.borderRadius = "12px";
+    el.style.marginBottom = "10px";
     el.style.border = "1px solid #ccc";
+    el.style.borderRadius = "12px";
+    el.style.background = "#f0f0f0";
   }
 
   loginBtn.textContent = "Login";
 
-  loginBtn.addEventListener("click", async () => {
+  // -------------------------
+  //   LOGIN BUTTON LOGIK
+  // -------------------------
+  loginBtn.onclick = async () => {
     status.textContent = "";
 
+    // Schritt 1 → E-Mail anzeigen
     if (step === 0) {
       wrapper.style.display = "block";
       wrapper.innerHTML = "";
       wrapper.appendChild(emailInput);
       wrapper.appendChild(status);
+
       loginBtn.textContent = "Weiter";
+      registerBtn.style.display = "none";
       step = 1;
       return;
     }
 
+    // Schritt 2 → Passwort anzeigen
     if (step === 1) {
       if (!emailInput.value.includes("@")) {
-        status.textContent = "Bitte gültige E-Mail.";
+        status.textContent = "Bitte gültige E-Mail eingeben.";
         return;
       }
+
       email = emailInput.value;
+
       wrapper.innerHTML = "";
       wrapper.appendChild(passInput);
       wrapper.appendChild(status);
+
       loginBtn.textContent = "Einloggen";
+      registerBtn.style.display = "block";
       step = 2;
       return;
     }
 
+    // Schritt 3 → Login durchführen
     if (step === 2) {
       status.textContent = "Wird geprüft…";
+
       const { data, error } = await client.auth.signInWithPassword({
         email: email,
         password: passInput.value
@@ -1857,7 +1877,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       status.style.color = "green";
-      status.textContent = "Login erfolgreich";
+      status.textContent = "Login erfolgreich!";
 
       setTimeout(() => {
         animateLoginToSetup(() => {
@@ -1867,7 +1887,33 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }, 500);
     }
-  });
+  };
+
+  // -------------------------
+  //   REGISTRIEREN BUTTON
+  // -------------------------
+  registerBtn.onclick = async () => {
+    status.textContent = "Registriere…";
+
+    const { data, error } = await client.auth.signUp({
+      email: email,
+      password: passInput.value
+    });
+
+    if (error) {
+      status.textContent = error.message;
+      status.style.color = "red";
+      return;
+    }
+
+    status.style.color = "green";
+    status.textContent = "Registrierung erfolgreich! Bitte einloggen.";
+
+    // Reset zum Login
+    loginBtn.textContent = "Einloggen";
+    registerBtn.style.display = "none";
+    step = 2;
+  };
 
 });
 </script>
