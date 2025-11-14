@@ -1761,39 +1761,104 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </script>
 <!-- ========================= -->
-<!--     LOGIN / SIGNUP JS     -->
+<!--     SUPABASE + LOGIN      -->
+<!--        AUTO LOGIN         -->
+<!--      HABITS SPEICHERN     -->
+<!--       HABITS LADEN        -->
 <!-- ========================= -->
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("Login-Logic gestartet…");
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("[INIT] Login / Auto-Login / Habits aktiv");
 
-  /* --- Supabase Initialisierung --- */
+  /* --- Supabase Client --- */
   const client = supabase.createClient(
     "https://gglgenarpskajkaanknk.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnbGdlbmFycHNrYWprYWFua25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwODA2NzAsImV4cCI6MjA3ODY1NjY3MH0.phVPaPpkiXJ0ncbRiBChpVBtY8gv0sm_MjlCJJnaSt4"
   );
 
-  console.log("Supabase Client geladen:", client);
+  /* ========================= */
+  /*       HABIT-FUNKTIONEN    */
+  /* ========================= */
 
-  /* --- DOM Elemente --- */
+  async function saveHabitsToSupabase() {
+    console.log("[HABITS] Speichere Habits…");
+
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session) return;
+
+    const user_id = sessionData.session.user.id;
+
+    const h1 = document.getElementById("setup-habit-1").value.trim();
+    const h2 = document.getElementById("setup-habit-2").value.trim();
+    const h3 = document.getElementById("setup-habit-3").value.trim();
+
+    const habits = [h1, h2, h3].filter(h => h.length > 0);
+
+    // Alte löschen
+    await client.from("habits").delete().eq("user_id", user_id);
+
+    if (habits.length === 0) return;
+
+    // Neue einfügen
+    const inserts = habits.map(h => ({ user_id, name: h }));
+    const { error } = await client.from("habits").insert(inserts);
+
+    if (error) console.error("[HABITS] Fehler:", error);
+    else console.log("[HABITS] Gespeichert:", inserts);
+  }
+
+  async function loadHabitsFromSupabase() {
+    console.log("[HABITS] Lade Habits…");
+
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session) return [];
+
+    const user_id = sessionData.session.user.id;
+
+    const { data, error } = await client
+      .from("habits")
+      .select("*")
+      .eq("user_id", user_id)
+      .order("id");
+
+    if (error) {
+      console.error("[HABITS] Fehler:", error);
+      return [];
+    }
+
+    console.log("[HABITS] Geladen:", data);
+    return data || [];
+  }
+
+  /* ========================= */
+  /*          LOGIN            */
+  /* ========================= */
+
   const loginView = document.getElementById("loginView");
   const loginBtn = document.getElementById("goSetup");
 
-  if (!loginBtn) {
-    console.error("LOGIN BUTTON NICHT GEFUNDEN!");
+  // Falls View nicht existiert → abbrechen
+  if (!loginBtn || !loginView) {
+    console.warn("[LOGIN] loginView oder goSetup fehlt");
     return;
   }
 
-  /* Vorherige App-Handler entfernen */
-  loginBtn.onclick = null;
+  loginBtn.onclick = null; // überschreibe alten Handler
+  loginBtn.textContent = "Login";
 
-  /* --- Wrapper direkt oberhalb des Buttons --- */
+  let step = 0;
+  let email = "";
+
+  /* --- Wrapper über dem Button --- */
   const wrapper = document.createElement("div");
   wrapper.style.display = "none";
   wrapper.style.marginBottom = "12px";
   loginBtn.parentNode.insertBefore(wrapper, loginBtn);
 
-  /* --- Input Styles --- */
+  const status = document.createElement("p");
+  status.style.color = "red";
+  status.style.fontSize = "0.8rem";
+
   function styleInput(el) {
     el.style.width = "100%";
     el.style.padding = "12px";
@@ -1803,24 +1868,15 @@ document.addEventListener("DOMContentLoaded", () => {
     el.style.background = "#f0f0f0";
   }
 
-  /* --- Email Input --- */
   const emailInput = document.createElement("input");
   emailInput.type = "email";
   emailInput.placeholder = "E-Mail";
   styleInput(emailInput);
 
-  /* --- Passwort Input --- */
   const passInput = document.createElement("input");
   passInput.type = "password";
   passInput.placeholder = "Passwort";
   styleInput(passInput);
-
-  /* --- Statustext --- */
-  const status = document.createElement("p");
-  status.style.color = "red";
-  status.style.fontSize = "0.8rem";
-  status.style.marginTop = "0";
-  wrapper.appendChild(status);
 
   /* --- Registrieren Button --- */
   const registerBtn = document.createElement("button");
@@ -1828,75 +1884,61 @@ document.addEventListener("DOMContentLoaded", () => {
   registerBtn.style.marginTop = "10px";
   registerBtn.style.width = "100%";
   registerBtn.style.padding = "12px";
-  registerBtn.style.borderRadius = "12px";
-  registerBtn.style.border = "none";
   registerBtn.style.background = "#444";
   registerBtn.style.color = "white";
+  registerBtn.style.borderRadius = "12px";
+  registerBtn.style.border = "none";
   registerBtn.style.display = "none";
   loginBtn.parentNode.appendChild(registerBtn);
 
-  /* --- Login Stepper Variablen --- */
-  let step = 0;
-  let email = "";
-
   /* --- LOGIN BUTTON LOGIK --- */
-  loginBtn.textContent = "Login";
-
   loginBtn.onclick = async () => {
     status.textContent = "";
 
-    // 1. Klick → E-Mail Feld
+    // 1) Email anzeigen
     if (step === 0) {
       wrapper.style.display = "block";
       wrapper.innerHTML = "";
       wrapper.appendChild(emailInput);
       wrapper.appendChild(status);
-
       loginBtn.textContent = "Weiter";
       registerBtn.style.display = "none";
       step = 1;
       return;
     }
 
-    // 2. Klick → Passwort Feld
+    // 2) Passwort anzeigen
     if (step === 1) {
       if (!emailInput.value.includes("@")) {
         status.textContent = "Bitte gültige E-Mail eingeben.";
         return;
       }
-
       email = emailInput.value;
-
       wrapper.innerHTML = "";
       wrapper.appendChild(passInput);
       wrapper.appendChild(status);
-
       loginBtn.textContent = "Einloggen";
       registerBtn.style.display = "block";
       step = 2;
       return;
     }
 
-    // 3. Klick → Login
+    // 3) Login durchführen
     if (step === 2) {
       status.textContent = "Wird geprüft…";
 
       const { data, error } = await client.auth.signInWithPassword({
-        email: email,
+        email,
         password: passInput.value
       });
-
-      console.log("Login:", data, error);
 
       if (error) {
         status.textContent = error.message;
         return;
       }
 
-      // Prüfen, ob E-Mail bestätigt ist
-      if (data && data.user && !data.user.email_confirmed_at) {
-        status.style.color = "red";
-        status.textContent = "Bitte bestätige deine E-Mail.";
+      if (!data.user.email_confirmed_at) {
+        status.textContent = "Bitte bestätige zuerst deine E-Mail.";
         await client.auth.signOut();
         return;
       }
@@ -1904,8 +1946,7 @@ document.addEventListener("DOMContentLoaded", () => {
       status.style.color = "green";
       status.textContent = "Login erfolgreich!";
 
-      // Weiter zu Setup
-      setTimeout(() => {
+      setTimeout(async () => {
         animateLoginToSetup(() => {
           loginView.classList.remove("active");
           setupView.classList.add("active");
@@ -1917,30 +1958,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* --- REGISTRIEREN BUTTON --- */
   registerBtn.onclick = async () => {
-    status.style.color = "black";
     status.textContent = "Registriere…";
 
     const { data, error } = await client.auth.signUp({
-      email: email,
+      email,
       password: passInput.value
     });
 
-    console.log("Signup:", data, error);
-
     if (error) {
-      status.style.color = "red";
       status.textContent = error.message;
       return;
     }
 
     status.style.color = "green";
     status.textContent =
-      "Registrierung erfolgreich. Bitte E-Mail bestätigen.";
+      "Registrierung erfolgreich! Bitte E-Mail bestätigen.";
 
     loginBtn.textContent = "Einloggen";
     registerBtn.style.display = "none";
-    step = 2; // Zurück zum Einloggen
+    step = 2;
   };
+
+  /* ========================= */
+  /*        AUTO LOGIN         */
+  /* ========================= */
+
+  const { data: autoSession } = await client.auth.getSession();
+
+  if (autoSession.session && autoSession.session.user.email_confirmed_at) {
+    console.log("[AUTOLOGIN] Benutzer gefunden → prüfe Habits…");
+
+    const habits = await loadHabitsFromSupabase();
+
+    loginView.classList.remove("active");
+
+    if (habits.length > 0) {
+      console.log("[AUTOLOGIN] Habits gefunden → mainView");
+      mainView.classList.add("active");
+      renderMainView(habits);
+    } else {
+      console.log("[AUTOLOGIN] Keine Habits → setupView");
+      setupView.classList.add("active");
+      renderSetup(true);
+    }
+  }
 });
 </script>
 <script>
