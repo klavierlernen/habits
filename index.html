@@ -559,4 +559,447 @@
     showAppAfterDataLoaded();
   };
   
+    // Autologin
+  (async () => {
+    const { data } = await supabaseClient.auth.getUser();
+    if (data.user) {
+      currentUser = data.user;
+      // Login-Screen bleibt sichtbar, Kreis schwebt,
+      // Daten werden im Hintergrund geladen
+      setupRealtime();
+      setupShakeDetection();
+      await loadHabitsFromDB();
+      showAppAfterDataLoaded();
+    }
+  })();
+
+  function setupRealtime() {
+    supabaseClient.channel('habits-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'habits' },
+        async payload => {
+          if (statsOpen) {
+            await refreshStatsLive();
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  async function loadHabitsFromDB() {
+    if (!currentUser) {
+      const { data } = await supabaseClient.auth.getUser();
+      currentUser = data.user;
+      if (!currentUser) return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from("habits_active")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .order("inserted_at", { ascending: true })
+      .limit(3);
+
+    if (error) {
+      console.error("loadHabitsFromDB error:", error);
+      return;
+    }
+
+    let rows = data || [];
+    rows = await ensureWeeklyReset(rows);
+    habits = rows;
+
+    clearAllSlots();
+
+    const baseDelay = 0.0;
+    habits.forEach((habit, i) => {
+      const delay = baseDelay + (habits.length - 1 - i) * 0.12;
+      createCardFromHabit(habit, i, delay);
+    });
+
+    refreshAddButtonIcon();
+  }
+
+  function clearAllSlots() {
+    slotOrder.forEach(id => {
+      const slot = document.getElementById(id);
+      slot.innerHTML = "";
+    });
+  }
+
+  function refreshAddButtonIcon() {
+    const addBtn = addBtnEl;
+
+    if (addBtn.dataset.mode === "stats") {
+      addBtn.innerHTML = '<i data-lucide="house"></i>';
+      addBtn.classList.remove("btn-plus");
+      addBtn.style.background = "#f3f3f3";
+      addBtn.style.color      = "#333";
+      addBtn.style.border     = "2px solid #ccc";
+      lucide.createIcons();
+      return;
+    }
+
+    if (habits.length < 3) {
+      addBtn.innerHTML = '<i data-lucide="plus"></i>';
+      addBtn.classList.add("btn-plus");
+      addBtn.style.background = "#000";
+      addBtn.style.color      = "#fff";
+      addBtn.style.border     = "none";
+    } else {
+      addBtn.innerHTML = '<i data-lucide="home"></i>';
+      addBtn.classList.remove("btn-plus");
+      addBtn.style.background = "#f3f3f3";
+      addBtn.style.color      = "#333";
+      addBtn.style.border     = "2px solid #ccc";
+    }
+    lucide.createIcons();
+  }
+
+  function createCardFromHabit(habit, index, delay=0) {
+    const slot = document.getElementById(slotOrder[index]);
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const rawGoal  = habit.goal;
+    const goal     = (rawGoal === null || rawGoal === undefined) ? 1 : rawGoal;
+    const progress = habit.progress || 0;
+    const dbColor  = habit.color || "#e4e4e4";
+
+    card.dataset.index    = index;
+    card.dataset.habitId  = habit.id;
+    card.dataset.goal     = goal;
+    card.dataset.progress = progress;
+    card.dataset.color    = dbColor;
+
+    const isActive = progress > 0;
+    card.dataset.active = isActive ? "true" : "false";
+
+    card.innerHTML = `
+      <div class="card-face front">
+        <input class="card-input" placeholder="Titel eingeben..." />
+        <div class="counter"></div>
+      </div>
+      <div class="card-face back">
+        <div class="half" id="gpsArea">
+          <i data-lucide="map-pin" style="width:32px;height:32px;color:#777;"></i>
+        </div>
+        <div class="half" id="numArea">0</div>
+      </div>
+    `;
+
+    slot.appendChild(card);
+    lucide.createIcons();
+
+    const input   = card.querySelector(".card-input");
+    const counter = card.querySelector(".counter");
+    const gpsArea = card.querySelector("#gpsArea");
+    const numArea = card.querySelector("#numArea");
+
+    input.value = habit.title || "";
+
+    numArea.textContent = goal;
+    if (goal >= 2) {
+      counter.style.display = "block";
+      counter.textContent   = progress + "/" + goal;
+    } else {
+      counter.style.display = "none";
+    }
+
+    if (isActive) {
+      card.style.background = dbColor;
+      input.style.color     = darken(dbColor);
+    } else {
+      card.style.background = "#e4e4e4";
+      card.dataset.color    = "#e4e4e4";
+      input.style.color     = "#666";
+    }
+
+    gsap.fromTo(card, { y:-80, opacity:0 }, {
+      y:0,
+      opacity:1,
+      duration:0.6,
+      ease:"power1.out",
+      delay
+    });
+
+    attachCardLogic(card);
+  }
+
+  function attachCardLogic(card) {
+    const input   = card.querySelector(".card-input");
+    const counter = card.querySelector(".counter");
+    const gpsArea = card.querySelector("#gpsArea");
+    const numArea = card.querySelector("#numArea");
+
+    let swipeStartX = 0;
+    let swipeEndX   = 0;
+
+    card.addEventListener("touchstart",(e)=>{
+      swipeStartX = e.touches[0].clientX;
+      swipeEndX   = swipeStartX;
+    });
+
+    card.addEventListener("touchmove",(e)=>{
+      swipeEndX = e.touches[0].clientX;
+    });
+
+    card.addEventListener("touchend",()=>{
+      const dx = swipeEndX - swipeStartX;
+
+      if (dx < -40 && !card.style.transform.includes("180deg")){
+        gsap.to(card,{
+          rotationY:180,
+          duration:0.48,
+          ease:"sine.inOut"
+        });
+      }
+      if (dx > 40 && card.style.transform.includes("180deg")){
+        gsap.to(card,{
+          rotationY:0,
+          duration:0.48,
+          ease:"sine.inOut"
+        });
+      }
+      // Flip nur per Swipe
+    });
+
+    numArea.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      let y = parseInt(card.dataset.goal) || 0;
+      y = (y + 1) % 8;
+      card.dataset.goal = y;
+      numArea.textContent = y;
+
+      let x = parseInt(card.dataset.progress) || 0;
+      if (x > y) {
+        x = y;
+        card.dataset.progress = x;
+      }
+
+      if (y >= 2) {
+        counter.style.display = "block";
+        counter.textContent   = x + "/" + y;
+      } else {
+        counter.style.display = "none";
+      }
+
+      saveHabit(card);
+    });
+
+    gpsArea.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      gsap.to(card,{rotationY:0,duration:0.45,ease:"sine.inOut"});
+    });
+
+    // Long-Press-Farbwechsel mit Save am Ende
+    let pressTimer = null;
+    let pressInterval = null;
+    let lastColor = null;
+
+    card.addEventListener("touchstart",()=>{
+      clearTimeout(pressTimer);
+      clearInterval(pressInterval);
+      lastColor = null;
+
+      pressTimer = setTimeout(()=>{
+        if (card.dataset.active === "true") {
+          let i = 0;
+          pressInterval = setInterval(()=>{
+            const col = cycleColors[i % cycleColors.length];
+            card.style.background = col;
+            card.dataset.color    = col;
+            input.style.color     = darken(col);
+            lastColor = col;
+            i++;
+          },900);
+        }
+      },300);
+    });
+
+    card.addEventListener("touchend",()=>{
+      clearTimeout(pressTimer);
+      clearInterval(pressInterval);
+
+      if (lastColor) {
+        saveHabit(card); // nur ein Save am Ende des Long-Press
+      }
+    });
+
+    input.addEventListener("blur", ()=> {
+      saveHabit(card);
+    });
+    input.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter"){
+        e.preventDefault();
+        input.blur();
+      }
+    });
+
+    card.addEventListener("click",()=>{
+      // kein Flip per Klick, nur Status/Progress
+      if(!input.value.trim()) return;
+
+      let goal     = parseInt(card.dataset.goal) || 0;
+      let progress = parseInt(card.dataset.progress) || 0;
+      let active   = card.dataset.active === "true";
+      const idx    = parseInt(card.dataset.index);
+
+      if (goal <= 1) {
+        // 1x- oder 0x-Aufgaben: Toggle
+        if (active) {
+          active   = false;
+          progress = 0;
+          card.style.background = "#e4e4e4";
+          card.dataset.color    = "#e4e4e4";
+          input.style.color     = "#666";
+        } else {
+          active   = true;
+          progress = 1;
+
+          let col = card.dataset.color;
+          if (!col || col === "#e4e4e4") {
+            col = cycleColors[idx % cycleColors.length];
+          }
+
+          card.style.background = col;
+          card.dataset.color    = col;
+          input.style.color     = darken(col);
+        }
+      } else {
+        // Multi-Goal (>=2): von 0 bis goal hochzählen
+        if (progress < goal) {
+          progress += 1;
+          active = true;
+
+          let col = card.dataset.color;
+          if (!col || col === "#e4e4e4") {
+            col = cycleColors[idx % cycleColors.length];
+          }
+
+          card.style.background = col;
+          card.dataset.color    = col;
+          input.style.color     = darken(col);
+        } else {
+          // bereits voll -> keine Änderung mehr
+          return;
+        }
+      }
+
+      card.dataset.progress = progress;
+      card.dataset.active   = active ? "true" : "false";
+
+      if (goal >= 2) {
+        counter.style.display = "block";
+        counter.textContent   = progress + "/" + goal;
+      } else {
+        counter.style.display = "none";
+      }
+
+      saveHabit(card);
+    });
+  }
+
+  async function saveHabit(card) {
+    if (!currentUser) return;
+
+    const habitId = card.dataset.habitId;
+    const input   = card.querySelector(".card-input");
+    const title   = input.value.trim();
+    const color   = card.dataset.color || "#e4e4e4";
+    const progress = parseInt(card.dataset.progress) || 0;
+    const goal     = parseInt(card.dataset.goal)     || 0;
+
+    if (!habitId) return;
+
+    const { error } = await supabaseClient
+      .from("habits")
+      .update({
+        title,
+        color,
+        progress,
+        goal
+      })
+      .eq("id", habitId);
+
+    if (error) {
+      console.error("saveHabit error:", error);
+    }
+  }
+
+  addBtnEl.addEventListener("click", async () => {
+    if (addBtnEl.dataset.mode === "stats") {
+      addBtnEl.dataset.mode = "main";
+      statsOpen = false;
+      gsap.to("#statsView",{top:"100svh",duration:0.42,ease:"power1.in"});
+      refreshAddButtonIcon();
+      return;
+    }
+
+    if (habits.length >= 3) {
+      return;
+    }
+
+    if (!currentUser) {
+      const { data } = await supabaseClient.auth.getUser();
+      currentUser = data.user;
+      if (!currentUser) return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from("habits")
+      .insert({
+        user_id: currentUser.id,
+        title: "",
+        color: "#e4e4e4",
+        progress: 0,
+        goal: 1,
+        appear_once: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("insert habit error:", error);
+      return;
+    }
+
+    habits.push(data);
+    const index = habits.length - 1;
+    createCardFromHabit(data, index, 0);
+    refreshAddButtonIcon();
+  });
+
+  async function loadOtherUser() {
+    if (!currentUser) return null;
+
+    const { data, error } = await supabaseClient
+      .from("users_public")
+      .select("id, display_name")
+      .neq("id", currentUser.id)
+      .limit(1);
+
+    if (error) {
+      console.error("loadOtherUser error:", error);
+      return null;
+    }
+
+    return data && data.length > 0 ? data[0] : null;
+  }
+
+  async function loadHabitsForUser(userId) {
+    const { data, error } = await supabaseClient
+      .from("habits_active")
+      .select("*")
+      .eq("user_id", userId)
+      .order("inserted_at", { ascending: true })
+      .limit(3);
+
+    if (error) {
+      console.error("loadHabitsForUser error:", error);
+      return [];
+    }
+    return data || [];
+  }
   
