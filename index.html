@@ -645,7 +645,25 @@
           <div class="half" id="gpsArea">
             <i data-lucide="map-pin" style="width:32px;height:32px;color:#777;"></i>
           </div>
-          <div class="half" id="numArea">0</div>
+
+          <div class="half" id="numAreaWrapper">
+            <div id="numArea">0</div>
+
+            <!-- Adresseingabe (zunächst versteckt) -->
+            <input 
+              id="gpsInput"
+              type="text"
+              placeholder="Adresse eingeben..."
+              style="
+                display:none;
+                width:100%;
+                padding:6px;
+                border-radius:12px;
+                border:1px solid #ccc;
+                font-size:1rem;
+              "
+            />
+          </div>
         </div>
       `;
 
@@ -687,15 +705,26 @@
       attachCardLogic(card);
     }
 
+    function shake(card) {
+      gsap.fromTo(card,
+        { x:-10 },
+        { x:10, duration:0.1, repeat:3, yoyo:true, ease:"power1.inOut",
+          onComplete: () => { card.style.transform = ""; }
+        }
+      );
+    }
+    
     function attachCardLogic(card) {
       const input   = card.querySelector(".card-input");
       const counter = card.querySelector(".counter");
       const gpsArea = card.querySelector("#gpsArea");
       const numArea = card.querySelector("#numArea");
+      const gpsInput = card.querySelector("#gpsInput");
 
       let swipeStartX = 0;
       let swipeEndX   = 0;
 
+      // --- SWIPE FRONT/BACK ---
       card.addEventListener("touchstart",(e)=>{
         swipeStartX = e.touches[0].clientX;
         swipeEndX   = swipeStartX;
@@ -716,6 +745,7 @@
         }
       });
 
+      // --- GOAL-ÄNDERUNG ---
       numArea.addEventListener("click",(e)=>{
         e.stopPropagation();
         let y = parseInt(card.dataset.goal) || 0;
@@ -739,12 +769,39 @@
         saveHabit(card);
       });
 
-      gpsArea.addEventListener("click",(e)=>{
+      // --- GPS EINGABE ---
+      gpsArea.addEventListener("click", (e) => {
         e.stopPropagation();
-        gsap.to(card,{rotationY:0,duration:0.45,ease:"sine.inOut"});
+
+        gsap.to(card, { rotationY:180, duration:0.48, ease:"sine.inOut" });
+
+        gpsInput.style.display = "block";
+        numArea.style.display = "none";
+
+        gpsInput.value = card.dataset.location || "";
+        gpsInput.focus();
       });
 
-      // Long-Press-Farbwechsel (DB-Save nur am Ende)
+      gpsInput.addEventListener("blur", async () => {
+        const addr = gpsInput.value.trim();
+        card.dataset.location = addr;
+
+        gpsInput.style.display = "none";
+        numArea.style.display = "flex";
+
+        const habitId = card.dataset.habitId;
+
+        if (habitId) {
+          const { error } = await supabaseClient
+            .from("habits")
+            .update({ location_address: addr })
+            .eq("id", habitId);
+
+          if (error) console.error("GPS address save error:", error);
+        }
+      });
+
+      // --- LONG PRESS FARBE ---
       let pressTimer = null;
       let pressInterval = null;
       let lastColor = null;
@@ -775,65 +832,135 @@
         if (lastColor) saveHabit(card);
       });
 
+      // --- TITLE SAVE ---
       input.addEventListener("blur", ()=> { saveHabit(card); });
       input.addEventListener("keydown", (e)=>{
         if(e.key==="Enter"){ e.preventDefault(); input.blur(); }
       });
 
-      card.addEventListener("click",()=>{
-        if(!input.value.trim()) return;
+      // --- DER EINZIGE CLICK-HANDLER ---
+      card.addEventListener("click", async (e) => {
 
-        let goal     = parseInt(card.dataset.goal) || 0;
-        let progress = parseInt(card.dataset.progress) || 0;
-        let active   = card.dataset.active === "true";
-        const idx    = parseInt(card.dataset.index);
+        // === GPS CHECK ===
+        const requiredAddress = card.dataset.location;
+        if (requiredAddress && requiredAddress.length > 0) {
 
-        if (goal <= 1) {
-          if (active) {
-            active   = false;
-            progress = 0;
-            card.style.background = "#e4e4e4";
-            card.dataset.color    = "#e4e4e4";
-            input.style.color     = "#666";
-          } else {
-            active   = true;
-            progress = 1;
+          e.stopPropagation();
 
-            let col = card.dataset.color;
-            if (!col || col === "#e4e4e4") col = cycleColors[idx % cycleColors.length];
+          navigator.geolocation.getCurrentPosition(async (pos) => {
+            const userLat = pos.coords.latitude;
+            const userLon = pos.coords.longitude;
 
-            card.style.background = col;
-            card.dataset.color    = col;
-            input.style.color     = darken(col);
-          }
-        } else {
-          if (progress < goal) {
-            progress += 1;
-            active = true;
+            const geo = await geocodeAddress(requiredAddress);
+            if (!geo) {
+              shake(card);
+              return;
+            }
 
-            let col = card.dataset.color;
-            if (!col || col === "#e4e4e4") col = cycleColors[idx % cycleColors.length];
+            const dist = haversine(userLat, userLon, geo.lat, geo.lon);
 
-            card.style.background = col;
-            card.dataset.color    = col;
-            input.style.color     = darken(col);
-          } else {
-            return;
-          }
+            if (dist > 100) {
+              shake(card);
+              return;
+            }
+
+            // OK im Radius -> Toggle
+            proceedHabitToggle(card);
+
+          }, () => shake(card));
+
+          return;
         }
 
-        card.dataset.progress = progress;
-        card.dataset.active   = active ? "true" : "false";
-
-        if (goal >= 2) {
-          counter.style.display = "block";
-          counter.textContent   = progress + "/" + goal;
-        } else {
-          counter.style.display = "none";
-        }
-
-        saveHabit(card);
+        // Keine Adresse -> normaler Toggle
+        proceedHabitToggle(card);
       });
+    }
+    
+    function proceedHabitToggle(card) {
+      const input   = card.querySelector(".card-input");
+      const counter = card.querySelector(".counter");
+
+      if(!input.value.trim()) return;
+
+      let goal     = parseInt(card.dataset.goal) || 0;
+      let progress = parseInt(card.dataset.progress) || 0;
+      let active   = card.dataset.active === "true";
+      const idx    = parseInt(card.dataset.index);
+
+      if (goal <= 1) {
+        if (active) {
+          active   = false;
+          progress = 0;
+          card.style.background = "#e4e4e4";
+          card.dataset.color    = "#e4e4e4";
+          input.style.color     = "#666";
+        } else {
+          active   = true;
+          progress = 1;
+
+          let col = card.dataset.color;
+          if (!col || col === "#e4e4e4") col = cycleColors[idx % cycleColors.length];
+
+          card.style.background = col;
+          card.dataset.color    = col;
+          input.style.color     = darken(col);
+        }
+      } else {
+        if (progress < goal) {
+          progress += 1;
+          active = true;
+
+          let col = card.dataset.color;
+          if (!col || col === "#e4e4e4") col = cycleColors[idx % cycleColors.length];
+
+          card.style.background = col;
+          card.dataset.color    = col;
+          input.style.color     = darken(col);
+        } else {
+          return;
+        }
+      }
+
+      card.dataset.progress = progress;
+      card.dataset.active   = active ? "true" : "false";
+
+      if (goal >= 2) {
+        counter.style.display = "block";
+        counter.textContent   = progress + "/" + goal;
+      } else {
+        counter.style.display = "none";
+      }
+
+      saveHabit(card);
+    }
+    
+    async function geocodeAddress(addr) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`;
+      const resp = await fetch(url);
+      const json = await resp.json();
+
+      if (!json || json.length === 0) return null;
+
+      return {
+        lat: parseFloat(json[0].lat),
+        lon: parseFloat(json[0].lon)
+      };
+    }
+    
+    function haversine(lat1, lon1, lat2, lon2) {
+      function toRad(x) { return x * Math.PI / 180; }
+
+      const R = 6371000; // Meter
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+
+      const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     }
 
     async function saveHabit(card) {
