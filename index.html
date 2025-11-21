@@ -1722,19 +1722,24 @@ forgotPw.onclick = () => {
     
     async function requestAllPermissions() {
       // Notifications
-      if (Notification.permission !== "granted") {
+      if (typeof Notification !== "undefined") {
         await Notification.requestPermission();
       }
 
-      // Motion
+      // Motion / Shake
       if (typeof DeviceMotionEvent !== "undefined" &&
           typeof DeviceMotionEvent.requestPermission === "function") {
-        await DeviceMotionEvent.requestPermission().catch(()=>{});
+        await DeviceMotionEvent.requestPermission();
       }
 
-      // Geo
-      navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {
-        enableHighAccuracy: true
+      // Geolocation (must resolve inside user gesture)
+      await new Promise(resolve => {
+        if (!navigator.geolocation) return resolve();
+        navigator.geolocation.getCurrentPosition(
+          () => resolve(),
+          () => resolve(),
+          { enableHighAccuracy: true }
+        );
       });
     }
 
