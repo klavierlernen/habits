@@ -172,7 +172,12 @@
       padding:24px;
     }
 
-    .front { background:transparent; }
+      .card-face.front {
+        background:transparent;
+        display:flex;
+        flex-direction:column-reverse;  /* wichtig */
+        justify-content:flex-start;
+      }
 
     .back {
       background:#e4e4e4;
@@ -193,20 +198,27 @@
       color:#777;
     }
 
-    .card-input {
-      position:absolute;
-      bottom:24px;
-      left:24px;
-      width:60%;
-      font-size:2rem;
-      font-weight:800;
-      border:none;
-      background:transparent;
-      outline:none;
-      color:#666;
-    }
+      .card-input {
+        width: 100%;
+        max-width: calc(100% - 90px);
+        font-size: 2rem;
+        font-weight: 800;
+        border: none;
+        background: transparent;
+        outline: none;
+        color: #666;
+        margin-top: 6px;
+        margin-bottom: 0;
+        line-height: 1.1;
+        white-space: normal;      /* neuer Umbruch */
+        word-wrap: break-word;    /* Wörter umbrechen */
+        min-height: 2.4rem;       /* Platz für min. 1 Zeile */
+      }
 
-    .card-input::placeholder { color:#999; }
+      .card-input:empty::before {
+        content: attr(data-placeholder);
+        color: #999;
+      }
 
     .counter {
       position:absolute;
@@ -680,7 +692,7 @@
 
       const rawGoal   = habit.goal;
       const goal      = (rawGoal === null || rawGoal === undefined) ? 1 : rawGoal;
-      const progress  = habit.progress || 0;
+      const progress  = parseInt(habit.progress) || 0;
       const dbColor   = habit.color || "#e4e4e4";
       const addr      = habit.location_address || "";
       const qrEnabled = habit.qr_enabled || false;
@@ -699,7 +711,7 @@
       // --- HTML ---
       card.innerHTML = `
         <div class="card-face front">
-          <input class="card-input" placeholder="Titel eingeben..." />
+          <div class="card-input" contenteditable="true" data-placeholder="Titel eingeben..."></div>
           <div class="counter counter-kcal" style="display:none;"></div>
         </div>
 
@@ -775,12 +787,12 @@
 
       if (isQR) {
         counter.style.display = "block";
-        counter.textContent = `${progress} KCAL`;
+        counter.textContent = `${parseInt(progress)} KCAL`;
       } else {
-        // normales Verhalten
+        const goal = parseInt(card.dataset.goal) || 1;
         if (goal >= 2) {
           counter.style.display = "block";
-          counter.textContent = progress + "/" + goal;
+          counter.textContent = `${progress}/${goal}`;
         } else {
           counter.style.display = "none";
         }
@@ -793,7 +805,7 @@
       const qrStatus = card.querySelector(".qr-status-text");
 
       // === Titel ===
-      input.value = habit.title || "";
+      input.textContent = habit.title || "";
 
       // === Adresse anzeigen ===
       if (addr) {
@@ -842,7 +854,13 @@
         ease:"power1.out",
         delay
       });
-
+      
+      if (qrEnabled) {
+        const kcalProgress = parseInt(progress) || 0;
+        counter.style.display = "block";
+        counter.textContent = `${kcalProgress} KCAL`;
+      }
+      
       attachCardLogic(card);
     }
 
@@ -1077,81 +1095,7 @@
       });
     }
 
-      // --- LONG PRESS FARBE ---
-      let pressTimer = null;
-      let pressInterval = null;
-      let lastColor = null;
 
-      card.addEventListener("touchstart",()=>{
-        clearTimeout(pressTimer);
-        clearInterval(pressInterval);
-        lastColor = null;
-
-        pressTimer = setTimeout(()=>{
-          if (card.dataset.active === "true") {
-            let i = 0;
-            pressInterval = setInterval(()=>{
-              const col = cycleColors[i % cycleColors.length];
-              card.style.background = col;
-              card.dataset.color    = col;
-              input.style.color     = darken(col);
-              lastColor = col;
-              i++;
-            },900);
-          }
-        },300);
-      });
-
-      card.addEventListener("touchend",()=>{
-        clearTimeout(pressTimer);
-        clearInterval(pressInterval);
-        if (lastColor) saveHabit(card);
-      });
-
-      // --- TITLE SAVE ---
-      input.addEventListener("blur", ()=> { saveHabit(card); });
-      input.addEventListener("keydown", (e)=>{
-        if(e.key==="Enter"){ e.preventDefault(); input.blur(); }
-      });
-
-      // --- DER EINZIGE CLICK-HANDLER ---
-      card.addEventListener("click", async (e) => {
-
-        // === GPS CHECK ===
-        const requiredAddress = card.dataset.location;
-        if (requiredAddress && requiredAddress.length > 0) {
-
-          e.stopPropagation();
-
-          navigator.geolocation.getCurrentPosition(async (pos) => {
-            const userLat = pos.coords.latitude;
-            const userLon = pos.coords.longitude;
-
-            const geo = await geocodeAddress(requiredAddress);
-            if (!geo) {
-              shake(card);
-              return;
-            }
-
-            const dist = haversine(userLat, userLon, geo.lat, geo.lon);
-
-            if (dist > 100) {
-              shake(card);
-              return;
-            }
-
-            // OK im Radius -> Toggle
-            proceedHabitToggle(card);
-
-          }, () => shake(card));
-
-          return;
-        }
-
-        // Keine Adresse -> normaler Toggle
-        proceedHabitToggle(card);
-      });
-    }
     
     function proceedHabitToggle(card) {
       const input   = card.querySelector(".card-input");
@@ -1244,9 +1188,9 @@
 
       const habitId = card.dataset.habitId;
       const input   = card.querySelector(".card-input");
-      const title   = input.value.trim();
+      const title = input.textContent.trim();
       const color   = card.dataset.color || "#e4e4e4";
-      const progress = parseInt(card.dataset.progress) || 0;
+      const progress  = parseInt(habit.progress) || 0;
       const goal     = parseInt(card.dataset.goal)     || 0;
 
       if (!habitId) return;
@@ -1822,66 +1766,170 @@
       return params.get("qr"); // z.B. ?qr=ABC123
     }
     
-    async function processQRFlow(qrId) {
-      if (!qrId || !currentUser) return;
+    // === QR CONFIRMATION HANDLER ===
+    function askQRPermission(kcal) {
+      return new Promise(resolve => {
+        const overlay = document.getElementById("qrConfirmOverlay");
+        const text    = document.getElementById("qrConfirmText");
+        const yesBtn  = document.getElementById("qrConfirmYes");
+        const noBtn   = document.getElementById("qrConfirmNo");
 
-      // 1. QR-Daten laden
-      const { data: qrRow, error } = await supabaseClient
-        .from("qr_codes")
-        .select("*")
-        .eq("id", qrId)
-        .single();
+        text.textContent = `Soll der Wert "${kcal}" KCAL zu deiner QR-Karte hinzugefügt werden?`;
 
-      if (error || !qrRow) {
-        console.error("QR not found");
-        alert("Dieser QR-Code ist ungültig.");
-        return;
-      }
+        overlay.style.display = "flex";
 
-      const kcal = qrRow.kcal_value;
+        yesBtn.onclick = () => {
+          overlay.style.display = "none";
+          resolve(true);
+        };
 
-      // 2. Habit finden, das QR erlaubt
-      const { data: habit, error: hErr } = await supabaseClient
-        .from("habits")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .eq("qr_enabled", true)
-        .single();
-
-      if (hErr || !habit) {
-        alert("Kein QR-Habit aktiviert.");
-        return;
-      }
-
-      // 3. KCAL addieren
-      const newProgress = (habit.progress || 0) + kcal;
-
-      const { error: updErr } = await supabaseClient
-        .from("habits")
-        .update({ progress: newProgress })
-        .eq("id", habit.id);
-
-      if (updErr) {
-        console.error("QR update error:", updErr);
-        return;
-      }
-
-      alert("+" + kcal + " kcal hinzugefügt!");
-
-      await safeLoadHabits(); // UI aktualisiert
+        noBtn.onclick = () => {
+          overlay.style.display = "none";
+          resolve(false);
+        };
+      });
     }
     
-    // UI aktualisieren
-    const habitCard = document.querySelector(`[data-habit-id="${habit.id}"]`);
-    if (habitCard) {
-      const counter = habitCard.querySelector(".counter");
-      if (counter) {
-        counter.style.display = "block";
-        counter.textContent = `${newProgress} KCAL`;
+    function isToday(dateStr) {
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      const today = new Date();
+
+      return (
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate()
+      );
+    }
+    
+    async function processQRFlow(qrId) {
+      try {
+        if (!qrId) return;
+
+        // User sicherstellen
+        if (!currentUser) {
+          const { data } = await supabaseClient.auth.getUser();
+          currentUser = data?.user || null;
+          if (!currentUser) return;
+        }
+
+        // QR-Datensatz laden
+        const { data: qrRow, error: qrErr } = await supabaseClient
+          .from("qr_codes")
+          .select("*")
+          .eq("code", qrId)
+          .single();
+
+        if (qrErr || !qrRow) return;
+
+        const kcal = parseInt(qrRow.kcal_value) || 0;
+        if (kcal <= 0) return;
+
+        // --- NEU: Check, ob heute schon gescannt ---
+        if (isToday(qrRow.last_scanned)) {
+          // Keine Alerts → Modal bleibt aus
+          // einfach nicht verarbeiten
+          return;
+        }
+
+        // Habit mit QR-Tracking holen
+        const { data: habit, error: hErr } = await supabaseClient
+          .from("habits")
+          .select("*")
+          .eq("user_id", currentUser.id)
+          .eq("qr_enabled", true)
+          .limit(1)
+          .maybeSingle();
+
+        if (hErr || !habit) return;
+
+        // Bestätigung über Modal
+        const ok = await askQRPermission(kcal);
+        if (!ok) return;
+
+        // KCAL addieren
+        const newProgress = (parseInt(habit.progress) || 0) + kcal;
+
+        const { error: updErr } = await supabaseClient
+          .from("habits")
+          .update({ progress: newProgress })
+          .eq("id", habit.id);
+
+        if (updErr) return;
+
+        // --- NEU: Heute als last_scanned speichern ---
+        const today = new Date().toISOString().substring(0, 10);
+
+        await supabaseClient
+          .from("qr_codes")
+          .update({ last_scanned: today })
+          .eq("id", qrRow.id);
+
+        // UI aktualisieren
+        await safeLoadHabits();
+      }
+      catch (err) {
+        console.error("processQRFlow fatal error:", err);
       }
     }
+    
+  
     
 </script>
+
+<!-- QR CONFIRMATION MODAL -->
+<div id="qrConfirmOverlay" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.35);
+  backdrop-filter:blur(2px);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999999;
+">
+  <div id="qrConfirmBox" style="
+    background:white;
+    padding:24px;
+    border-radius:20px;
+    width:80%;
+    max-width:340px;
+    text-align:center;
+    box-shadow:0 6px 20px rgba(0,0,0,0.2);
+  ">
+    <div id="qrConfirmText" style="
+      font-size:18px;
+      font-weight:600;
+      margin-bottom:24px;
+    ">
+      Soll der Wert hinzugefügt werden?
+    </div>
+
+    <div style="display:flex; justify-content:center; gap:16px;">
+      <button id="qrConfirmYes" style="
+        flex:1;
+        padding:12px;
+        border-radius:12px;
+        border:none;
+        background:#000;
+        color:white;
+        font-size:16px;
+        font-weight:600;
+      ">Ja</button>
+
+      <button id="qrConfirmNo" style="
+        flex:1;
+        padding:12px;
+        border-radius:12px;
+        border:none;
+        background:#ef4444;
+        color:white;
+        font-size:16px;
+        font-weight:600;
+      ">Nein</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
   
