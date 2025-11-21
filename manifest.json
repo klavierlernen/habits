@@ -1,9 +1,9 @@
 {
   "name": "Consistency",
   "short_name": "Consistency",
-  "start_url": "index.html",
+  "start_url": "/habits/",
+  "scope": "/habits/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "orientation": "portrait"
+  "theme_color": "#ffffff"
 }
