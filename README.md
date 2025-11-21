@@ -1,148 +1,131 @@
-# Consistency – Die App für klare, einfache und smarte Gewohnheiten
+# 🌟 Consistency  
+**Die App, die deine Gewohnheiten endlich einfach macht.**
 
-Consistency ist eine minimalistische, schnelle und flexible Habit-App.  
-Sie wurde gebaut, um tägliche Routinen einfacher, messbarer und intuitiver zu machen – ohne Ablenkung, ohne unnötige Menüs.
+Keine Listen.  
+Keine Menüs.  
+Kein Chaos.  
 
-Die App konzentriert sich auf **3 aktive Gewohnheiten**, die du jeden Tag sichtbar, strukturiert und interaktiv abarbeiten kannst.
-
----
-
-## Was die App kann
-
-### **1. Drei übersichtliche Habit-Karten**
-Du hast immer genau **drei** Gewohnheiten vor dir.  
-Keine Listen, kein endloses Scrollen – drei klare Ziele pro Tag.
-
-Jede Karte besitzt:
-- **Titel** (mehrzeilig möglich)
-- **Fortschrittsanzeige** (z. B. 0/7 oder KCAL)
-- **Farbe** (änderbar durch Gedrückthalten)
-- **Vorder- und Rückseite** (Swipe für Optionen)
+Nur **du**, deine **3 wichtigsten Habits** – und ein ultraschnell reagierendes Interface, das dich wirklich unterstützt.
 
 ---
 
-## **2. Fortschritt mit einem Tipp**
-- Einfach auf die Karte tippen → Fortschritt erhöht sich.  
-- Bei Zielen wie *1× täglich* wird das Habit einfach an/aus geschaltet.  
-- Bei Zielen von *2–7×* steigt der Zähler Schritt für Schritt.
+# 🚀 Was macht die App?
+
+## 🎯 Drei Habits. Punkt.
+Du siehst immer nur **3 Karten**.  
+Jede Karte ist groß, klar und sofort bedienbar.
+
+- Mehrzeiliger Titel ✏️  
+- Fortschrittsanzeige 🔢  
+- Farbe änderbar durch Long-Press 🎨  
+- Zielwerte auf der Rückseite einstellbar
+
+---
+
+## 👆 Fortschritt mit einem Tipp
+Auf eine Karte tippen = Fortschritt erhöhen.  
+Kein Laden, kein Menü – sofortiges Feedback.
+
+- 1× Habit → An/Aus  
+- 2–7× Habit → Zähler läuft hoch  
 
 Alles wird automatisch gespeichert.
 
 ---
 
-## **3. Zielwert pro Habit**
-Auf der Rückseite kannst du einstellen:
-- Wie oft du dieses Habit am Tag schaffen willst.  
-- Ziele reichen von **0 bis 7**.
+## 📍 GPS-Habits  
+Gewohnheiten können ortsabhängig sein:
 
-Der Fortschritt wird vorne immer passend dargestellt.
+- Fitnessstudio  
+- Zuhause  
+- Arbeitsplatz  
+- Park  
 
----
-
-## **4. GPS-gebundene Habits**
-Du kannst einer Karte eine Adresse zuweisen.  
-Dann funktioniert das Habit **nur an diesem Ort**.
-
-Beispiele:
-- „Gym & Swim“ kann nur im Fitnessstudio aktiviert werden  
-- „Arbeiten an Projekt X“ nur zu Hause  
-- „Spazieren gehen“ nur im Park  
-
-Die App prüft automatisch, ob du nah genug am Zielort bist.
+Nur am richtigen Ort lässt sich das Habit aktivieren.  
+Zu weit weg → die Karte wiggelt.
 
 ---
 
-## **5. QR-Habits für Kalorien oder Mengen**
-Du kannst ein Habit in den **QR-Modus** setzen.
+## 🔳 QR-Habits (für KCAL / Protein / Menge / Punkte)
+Eine Karte kann in den **QR-Modus** gesetzt werden.
 
-Das bedeutet:
-- Jeder QR-Code enthält einen Wert (z. B. 500 kcal).  
-- Wenn du den QR-Code scannst oder per Link öffnest, fragt die App:
-  > Soll der Wert „500 KCAL“ hinzugefügt werden?
-- Bestätigst du, wird dieser Wert auf deine Karte addiert.
+QR-Codes können Werte enthalten:  
+- 🍜 500 KCAL  
+- 🥛 30 g Protein  
+- ⏱️ Arbeitszeit  
+- 🪙 Punkte  
 
-Zusätzlich:
-- Ein QR-Code kann **nur einmal pro Tag** gewertet werden.  
-- Die App merkt sich den letzten Scan-Tag automatisch.
+Beim Scannen fragt die App:  
+> „Soll der Wert hinzugefügt werden?“
 
-Perfekt für:
-- Essens-Tracking  
-- Protein-Tracking  
-- Getränkemengen  
-- Arbeitszeiten  
-- Belohnungspunkte  
+Ein QR-Code zählt **maximal einmal täglich**.
 
 ---
 
-## **6. QR-Links funktionieren auch vor Login**
-Scannst du einen QR-Code, bevor du eingeloggt bist:
-- Der Wert wird gespeichert und **nach deinem Login korrekt angewendet**.  
-- So übersteht ein Scan sogar App-Schließen, Seite neu laden, usw.
+## 🔐 QR-Scans funktionieren auch vor Login
+Ein Scan überlebt:
+- App schließen  
+- neu laden  
+- Login erst später  
+
+Der Wert wird nach Login automatisch verbucht.
 
 ---
 
-## **7. Statistik-Ansicht**
-Ein eigener Bereich zeigt dir deinen Tagesfortschritt:
+## 📊 Statistik
+Ein separater Bereich zeigt:
 
-- deine 3 Habits als gefüllte Fortschrittsbalken  
-- dein aktueller **Streak** (wie viele Tage in Folge du aktiv warst)  
-- optional die Werte einer zweiten Person (z. B. Freund, Partner, Coach)
+- deine 3 Habits als Balken  
+- deinen Streak 🔥  
+- optional die Daten einer zweiten Person  
 
-Dein Name kann direkt im Stats-Screen bearbeitet und gespeichert werden.
+Der Name lässt sich dort direkt bearbeiten.
 
 ---
 
-## **8. Push-Benachrichtigungen**
-Die App kann dich automatisch erinnern:
-- an deine Habits  
+## 🔔 Push-Benachrichtigungen  
+Die App kann dich erinnern:
+
+- an Habits  
 - an Streaks  
-- an wichtige Zeitpunkte  
-
-Push-Token werden sicher über Supabase verwaltet.
+- an Tagesziele  
 
 ---
 
-## **9. Shake-to-Delete (Wackel-Modus)**
-Schüttelst du dein Gerät, aktivierst du den Löschmodus:
-- Alle Karten wackeln animiert  
-- Ein Delete-Panel erscheint  
-- Du kannst alle Habits auf einmal löschen  
-- Nach wenigen Sekunden schließt sich der Modus automatisch wieder
+## 📱 PWA – wie eine echte App
+- offline nutzbar  
+- installierbar  
+- sehr schnell  
+- funktioniert sogar im Flugmodus
 
 ---
 
-## **10. Vollständige PWA – App-Feeling auf iOS & Android**
-- funktioniert offline  
-- kann wie eine App installiert werden  
-- modernes Icon und Splashscreen  
-- Service Worker für schnelle Ladezeiten  
-- funktioniert auch im Flugmodus
+## 🤝 Live-Sync
+Alles synchronisiert sofort:
+
+- Farben  
+- Titel  
+- Fortschritt  
+- GPS  
+- QR-Werte  
+- Streaks  
+- Push-Token  
 
 ---
 
-## **11. Realtime-Sync mit Supabase**
-Alle Daten werden sofort synchronisiert:
-- Habits
-- Titel
-- Farben
-- Zielwerte
-- GPS-Adressen
-- QR-Fortschritt
-- Streaks
-- Push-Subscription
-
-Änderungen werden direkt angezeigt – auch über mehrere Geräte hinweg.
+## 🤳 Shake-to-Delete  
+Gerät schütteln → Karten wackeln.  
+Delete-Panel erscheint.  
+Alle Habits auf Wunsch löschen.
 
 ---
 
-## **Kurz gesagt: Was macht diese App besonders?**
+# 🧠 Kurz gesagt:
+- minimalistisch  
+- schnell  
+- klar  
+- flexibel  
+- spielerisch  
+- designed für echten Alltag  
 
-- **Maximale Klarheit**: nur 3 Habits → kein Overload  
-- **Schnelles Interagieren**: tippen, wischen, lange drücken  
-- **Starke Visualisierung**: Farben, Balken, live-Animationen  
-- **Kalorien- und Mengen-Tracking mit QR-Codes**  
-- **GPS-gebundene Ziele für echtes Verhaltenstraining**  
-- **Offline-fähig, App-Installierbar, sehr leichtgewichtig**  
-- **Designed für täglichen Gebrauch – nicht für Screenshots**  
-
----
+**Consistency reduziert Gewohnheiten auf das Wesentliche – damit du sie wirklich machst.**  
