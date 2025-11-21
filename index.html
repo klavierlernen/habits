@@ -617,7 +617,7 @@
       lucide.createIcons();
     }
 
-    function createCardFromHabit(habit, index, delay=0) {
+    function createCardFromHabit(habit, index, delay = 0) {
       const slot = document.getElementById(slotOrder[index]);
       const card = document.createElement("div");
       card.className = "card";
@@ -626,12 +626,14 @@
       const goal     = (rawGoal === null || rawGoal === undefined) ? 1 : rawGoal;
       const progress = habit.progress || 0;
       const dbColor  = habit.color || "#e4e4e4";
+      const addr     = habit.location_address || "";
 
       card.dataset.index    = index;
       card.dataset.habitId  = habit.id;
       card.dataset.goal     = goal;
       card.dataset.progress = progress;
       card.dataset.color    = dbColor;
+      card.dataset.location = addr;          // ← Wichtig
 
       const isActive = progress > 0;
       card.dataset.active = isActive ? "true" : "false";
@@ -641,15 +643,35 @@
           <input class="card-input" placeholder="Titel eingeben..." />
           <div class="counter"></div>
         </div>
+
         <div class="card-face back">
           <div class="half" id="gpsArea">
-            <i data-lucide="map-pin" style="width:32px;height:32px;color:#777;"></i>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+              <i data-lucide="map-pin" style="width:32px;height:32px;color:#777;"></i>
+
+              <!-- Adresse klein -->
+              <div class="gps-address-line1" style="
+                font-size:0.75rem;
+                color:#555;
+                text-align:center;
+                line-height:1;
+                display:none;
+              "></div>
+
+              <div class="gps-address-line2" style="
+                font-size:0.75rem;
+                color:#555;
+                text-align:center;
+                line-height:1;
+                display:none;
+              "></div>
+            </div>
           </div>
 
           <div class="half" id="numAreaWrapper">
             <div id="numArea">0</div>
 
-            <!-- Adresseingabe (zunächst versteckt) -->
+            <!-- Adresseingabe -->
             <input 
               id="gpsInput"
               type="text"
@@ -670,13 +692,27 @@
       slot.appendChild(card);
       lucide.createIcons();
 
-      const input   = card.querySelector(".card-input");
-      const counter = card.querySelector(".counter");
-      const gpsArea = card.querySelector("#gpsArea");
-      const numArea = card.querySelector("#numArea");
+      const input     = card.querySelector(".card-input");
+      const counter   = card.querySelector(".counter");
+      const numArea   = card.querySelector("#numArea");
+      const line1     = card.querySelector(".gps-address-line1");
+      const line2     = card.querySelector(".gps-address-line2");
 
       input.value = habit.title || "";
 
+      // === Adresse korrekt anzeigen ===
+      if (addr) {
+        const parts = addr.split(",");
+        line1.textContent = (parts[0] || "").trim();   // Straße + Hausnummer
+        line2.textContent = (parts[1] || "").trim();   // PLZ + Ort
+        line1.style.display = "block";
+        line2.style.display = "block";
+      } else {
+        line1.style.display = "none";
+        line2.style.display = "none";
+      }
+
+      // Counter / Farbe
       numArea.textContent = goal;
       if (goal >= 2) {
         counter.style.display = "block";
