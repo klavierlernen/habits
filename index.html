@@ -860,25 +860,17 @@ forgotPw.onclick = () => {
       }
 
       // === Farben ===
-      if (qrEnabled) {
-        if (scannedToday) {
-          card.style.background = dbColor;
-          input.style.color     = darken(dbColor);
-          card.dataset.active   = "true";
-        } else {
-          card.style.background = "#e4e4e4";
-          input.style.color     = "#666";
-          card.dataset.active   = "false";
-        }
+      const progValue = parseInt(progress) || 0;
+
+      if (progValue > 0) {
+        card.style.background = dbColor;
+        input.style.color     = darken(dbColor);
+        card.dataset.active   = "true";
       } else {
-        if (isActive) {
-          card.style.background = dbColor;
-          input.style.color     = darken(dbColor);
-        } else {
-          card.style.background = "#e4e4e4";
-          card.dataset.color    = "#e4e4e4";
-          input.style.color     = "#666";
-        }
+        card.style.background = "#e4e4e4";
+        input.style.color     = "#666";
+        card.dataset.active   = "false";
+        card.dataset.color    = "#e4e4e4";
       }
 
       // === Animation ===
@@ -1332,10 +1324,19 @@ forgotPw.onclick = () => {
       const color = h.color || "#e5e7eb";
 
       let percent = 0;
-      if (y > 0) {
-        percent = (y === 1)
-          ? (x >= 1 ? 100 : 0)
-          : Math.round((x / y) * 100);
+
+      // QR habit: max value = 21000 kcal
+      if (h.qr_enabled === true || h.qr_enabled === "true") {
+        const maxKcal = 21000;
+        const kcal = parseInt(h.progress) || 0;
+        percent = Math.min(100, Math.round((kcal / maxKcal) * 100));
+      }
+      else {
+        if (y > 0) {
+          percent = (y === 1)
+            ? (x >= 1 ? 100 : 0)
+            : Math.round((x / y) * 100);
+        }
       }
 
       html += `
