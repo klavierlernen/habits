@@ -1792,10 +1792,10 @@ forgotPw.onclick = () => {
       if (error) console.error("push subscribe error", error);
     }
     
-    // (async () => {
-    //    await requestAllPermissions();
-    //    await subscribeUserToPush();
-    // })();
+     (async () => {
+        await requestAllPermissions();
+      await subscribeUserToPush();
+    })();
     
     function getQRParam() {
       const params = new URLSearchParams(window.location.search);
