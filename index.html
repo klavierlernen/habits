@@ -1823,100 +1823,81 @@ forgotPw.onclick = () => {
       );
     }
     
-    async function processQRFlow(qrId) {
-      try {
-        if (!qrId) return;
+async function processQRFlow(qrId) {
+  try {
+    if (!qrId) return;
 
-        // ---------------------------------------------------
-        // 0. QR Parameter nach dem ersten Lesen entfernen
-        //    → verhindert doppelten Trigger nach Login
-        // ---------------------------------------------------
-        if (window.history && window.history.replaceState) {
-          const cleanUrl = window.location.origin + window.location.pathname;
-          window.history.replaceState({}, "", cleanUrl);
-        }
-
-        // ---------------------------------------------------
-        // 1. User sicherstellen
-        // ---------------------------------------------------
-        if (!currentUser) {
-          const { data } = await supabaseClient.auth.getUser();
-          currentUser = data?.user || null;
-          if (!currentUser) return;
-        }
-
-        // ---------------------------------------------------
-        // 2. QR-Code laden
-        // ---------------------------------------------------
-        const { data: qrRow, error: qrErr } = await supabaseClient
-          .from("qr_codes")
-          .select("*")
-          .eq("code", qrId)
-          .single();
-
-        if (qrErr || !qrRow) return;
-
-        const kcal = parseInt(qrRow.kcal_value) || 0;
-        if (kcal <= 0) return;
-
-        // ---------------------------------------------------
-        // 3. Daily-Limit: nur 1x pro Tag
-        // ---------------------------------------------------
-        if (isToday(qrRow.last_scanned)) {
-          return; // keine Meldung, einfach ignorieren
-        }
-
-        // ---------------------------------------------------
-        // 4. Habit mit aktivem QR-Tracking holen
-        // ---------------------------------------------------
-        const { data: habit, error: hErr } = await supabaseClient
-          .from("habits")
-          .select("*")
-          .eq("user_id", currentUser.id)
-          .eq("qr_enabled", true)
-          .limit(1)
-          .maybeSingle();
-
-        if (hErr || !habit) return;
-
-        // ---------------------------------------------------
-        // 5. Bestätigungsmodal anzeigen
-        // ---------------------------------------------------
-        const ok = await askQRPermission(kcal);
-        if (!ok) return;
-
-        // ---------------------------------------------------
-        // 6. KCAL addieren
-        // ---------------------------------------------------
-        const newProgress = (parseInt(habit.progress) || 0) + kcal;
-
-        const { error: updErr } = await supabaseClient
-          .from("habits")
-          .update({ progress: newProgress })
-          .eq("id", habit.id);
-
-        if (updErr) return;
-
-        // ---------------------------------------------------
-        // 7. Heute in QR-Code speichern
-        // ---------------------------------------------------
-        const today = new Date().toISOString().substring(0, 10);
-
-        await supabaseClient
-          .from("qr_codes")
-          .update({ last_scanned: today })
-          .eq("id", qrRow.id);
-
-        // ---------------------------------------------------
-        // 8. UI aktualisieren (aber NICHT erneut processQRFlow aufrufen)
-        // ---------------------------------------------------
-        await safeLoadHabits();
-        showAppAfterDataLoaded();
-
-      } catch (err) {
-        console.error("processQRFlow fatal error:", err);
-      }
+    // URL cleanup
+    if (window.history && window.history.replaceState) {
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
     }
+
+    // Ensure user
+    if (!currentUser) {
+      const { data } = await supabaseClient.auth.getUser();
+      currentUser = data?.user || null;
+      if (!currentUser) return;
+    }
+
+    // Load QR row
+    const { data: qrRow, error: qrErr } = await supabaseClient
+      .from("qr_codes")
+      .select("*")
+      .eq("code", qrId)
+      .single();
+
+    if (qrErr || !qrRow) return;
+
+    const kcal = parseInt(qrRow.kcal_value) || 0;
+    if (kcal <= 0) return;
+
+    // Daily limit
+    if (isToday(qrRow.last_scanned)) {
+      return;
+    }
+
+    // Load QR-enabled habit
+    const { data: habit, error: hErr } = await supabaseClient
+      .from("habits")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .eq("qr_enabled", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (hErr || !habit) return;
+
+    // Confirmation dialog
+    const ok = await askQRPermission(kcal);
+    if (!ok) return;
+
+    // Add kcal
+    const newProgress = (parseInt(habit.progress) || 0) + kcal;
+
+    const { error: updErr } = await supabaseClient
+      .from("habits")
+      .update({ progress: newProgress })
+      .eq("id", habit.id);
+
+    if (updErr) return;
+
+    // Update last scanned
+    const today = new Date().toISOString().substring(0, 10);
+
+    await supabaseClient
+      .from("qr_codes")
+      .update({ last_scanned: today })
+      .eq("id", qrRow.id);
+
+    // Reload UI
+    await safeLoadHabits();
+    showAppAfterDataLoaded();
+
+  } catch (err) {
+    console.error("processQRFlow fatal error:", err);
+  }
+}
     
 
   
