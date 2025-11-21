@@ -1,20 +1,9 @@
 {
-  "name": "Consistency ",
+  "name": "Consistency",
   "short_name": "Consistency",
-  "start_url": "/",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
-  "icons": [
-    {
-      "src": "3FC2E555-7142-43BE-83DE-E5ED7A123793.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "3FC2E555-7142-43BE-83DE-E5ED7A123793.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+  "theme_color": "#ffffff",
+  "orientation": "portrait"
 }
