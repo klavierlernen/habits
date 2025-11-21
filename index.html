@@ -1803,46 +1803,60 @@ forgotPw.onclick = () => {
     
 
     // === QR Info Modal Handler ===
-    function showQRInfo(title, kcal, d1, d2, d3) {
-      return new Promise(resolve => {
-          document.getElementById("qrInfoTitle").textContent = title || "";
-        document.getElementById("qrInfoKcal").textContent = `${kcal} KCAL`;
+function showQRInfo(title, kcal, d1, d2, d3) {
+  return new Promise(resolve => {
+    document.getElementById("qrInfoTitle").textContent = title || "";
+    document.getElementById("qrInfoKcal").textContent = `${kcal} KCAL`;
 
-        document.getElementById("qrInfoDate1").innerHTML =
-          `<i data-lucide="hand-helping" style="width:20px;height:20px;"></i> ${d1 || "-"}`;
+    document.getElementById("qrInfoDate1").innerHTML =
+      `<i data-lucide="hand-helping" style="width:20px;height:20px;"></i> ${d1 || "-"}`;
 
-        document.getElementById("qrInfoDate2").innerHTML =
-          `<i data-lucide="snowflake" style="width:20px;height:20px;"></i> ${d2 || "-"}`;
+    document.getElementById("qrInfoDate2").innerHTML =
+      `<i data-lucide="snowflake" style="width:20px;height:20px;"></i> ${d2 || "-"}`;
 
-        document.getElementById("qrInfoDate3").innerHTML =
-          `<i data-lucide="calendar-clock" style="width:20px;height:20px;"></i> ${d3 || "-"}`;
+    document.getElementById("qrInfoDate3").innerHTML =
+      `<i data-lucide="calendar-clock" style="width:20px;height:20px;"></i> ${d3 || "-"}`;
 
-        lucide.createIcons();
+    lucide.createIcons();
 
-        const scr = document.getElementById("qrInfoScreen");
-        scr.style.display = "flex";
+    const scr = document.getElementById("qrInfoScreen");
+    scr.style.display = "flex";
 
-        const cards = document.querySelectorAll(".card");
-        cards.forEach(card => {
-          gsap.to(card, { y: 150, duration:0.35, ease:"power1.out" });
-        });
+    const cards = document.querySelectorAll(".card");
+    const infoBox = document.getElementById("qrInfoBox");
 
-        const okBtn = document.getElementById("qrInfoOK");
-        const cancelBtn = document.getElementById("qrInfoCancel");
+    // Neues, stabileres Ziel-Y berechnet den Abstand anhand der tatsächlichen Position der InfoBox
+    const infoRect = infoBox.getBoundingClientRect();
+    const safeOffset = 40; // zusätzlicher Platz, damit die Karten garantiert unter die Box rutschen
 
-        okBtn.onclick = () => {
-          scr.style.display = "none";
-          cards.forEach(card => gsap.to(card, { y:0, duration:0.35 }));
-          resolve(true);
-        };
+    cards.forEach(card => {
+      const cardRect = card.getBoundingClientRect();
+      const targetY = (infoRect.bottom + safeOffset) - cardRect.top;
 
-        cancelBtn.onclick = () => {
-          scr.style.display = "none";
-          cards.forEach(card => gsap.to(card, { y:0, duration:0.35 }));
-          resolve(false);
-        };
+      gsap.to(card, { y: targetY, duration: 0.42, ease: "power2.out" });
+    });
+
+    const okBtn = document.getElementById("qrInfoOK");
+    const cancelBtn = document.getElementById("qrInfoCancel");
+
+    function resetCards() {
+      scr.style.display = "none";
+      cards.forEach(card => {
+        gsap.to(card, { y: 0, duration: 0.42, ease: "power2.out" });
       });
     }
+
+    okBtn.onclick = () => {
+      resetCards();
+      resolve(true);
+    };
+
+    cancelBtn.onclick = () => {
+      resetCards();
+      resolve(false);
+    };
+  });
+}
     
     function isToday(dateStr) {
       if (!dateStr) return false;
