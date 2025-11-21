@@ -479,6 +479,41 @@
     }
 
 // LOGIN
+// LOGIN-MODUS AUSWÄHLEN
+btnLogin.onclick = () => {
+  authMode = "login";
+  loginName.style.display = "none";
+  hidePasswordResetLink();
+
+  loginForm.style.display = "flex";
+  loginEmail.value = "";
+  loginPassword.value = "";
+  loginError.style.display = "none";
+};
+
+btnRegister.onclick = () => {
+  authMode = "register";
+  loginName.style.display = "block";
+  hidePasswordResetLink();
+
+  loginForm.style.display = "flex";
+  loginEmail.value = "";
+  loginPassword.value = "";
+  loginName.value = "";
+  loginError.style.display = "none";
+};
+
+// Passwort vergessen
+forgotPw.onclick = () => {
+  authMode = "reset";
+  loginName.style.display = "none";
+  showPasswordResetLink();
+
+  loginForm.style.display = "flex";
+  loginPassword.style.display = "none";   // Passwort verstecken
+  loginError.style.display = "none";
+};
+    
     loginOkBtn.onclick = async () => {
       loginError.style.display = "none";
 
