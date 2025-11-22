@@ -1128,7 +1128,7 @@ forgotPw.onclick = () => {
       const input   = card.querySelector(".card-input");
       const counter = card.querySelector(".counter");
 
-      if(!input.value.trim()) return;
+      if (!input.textContent.trim()) return;
 
       let goal     = parseInt(card.dataset.goal) || 0;
       let progress = parseInt(card.dataset.progress) || 0;
