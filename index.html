@@ -1789,17 +1789,23 @@ forgotPw.onclick = () => {
       const ids = habits.map(h => h.id);
       const { error } = await supabaseClient
         .from("habits")
-        .delete()
+        .update({ progress: 0 })
         .in("id", ids);
 
       if (error) {
-        console.error("deleteAllHabits error:", error);
+        console.error("resetAllHabits error:", error);
       }
     }
 
-    habits = [];
+    // Lokale Daten aktualisieren
+    habits = habits.map(h => ({ ...h, progress: 0 }));
+
     clearAllSlots();
+    habits.forEach((habit, i) => {
+      createCardFromHabit(habit, i, 0);
+    });
     refreshAddButtonIcon();
+
     reverseShakeAnimation();
   }
 
@@ -2241,7 +2247,7 @@ if ("serviceWorker" in navigator) {
       .subscribe();
       
 </script>
- 
+
 </body>
 </html>
   
