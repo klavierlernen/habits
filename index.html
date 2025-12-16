@@ -392,6 +392,58 @@
       text-overflow:ellipsis;
     }
 
+    .stats-reset-wrap {
+      display:flex;
+      justify-content:center;
+      margin-top:36px; /* mehr Abstand zur Progressbar */
+      margin-bottom:12px;
+    }
+
+    .stats-reset-btn {
+      min-width:160px;        /* breit genug für Hinweistext in einer Zeile */
+      height:48px;
+      padding:0 16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      border:2px solid #ef4444;
+      background:transparent;
+      color:#ef4444;
+      cursor:pointer;
+      position:relative;
+      overflow:hidden;
+      font-size:14px;
+      white-space:nowrap;     /* Text bleibt einzeilig */
+    }
+
+    .stats-reset-btn.hint {
+      font-size:14px;
+      font-weight:600;
+      padding:0 16px;
+      text-align:center;
+    }
+
+    .stats-reset-progress {
+      position:absolute;
+      bottom:0;
+      left:0;
+      height:100%;
+      width:0%;
+      background:rgba(239,68,68,0.25);
+      z-index:0;
+    }
+
+    .stats-reset-btn-content {
+      position:relative;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      line-height:1.2;
+    }
+
     /* Dünner Delete-Balken über der obersten Karte */
     #deletePanel {
       position:fixed;
@@ -440,9 +492,9 @@
 <!-- LOGIN -->
 <div id="loginScreen">
   <div id="loginCircle"></div>
-  <div id="loginHeadline">Hallo, bitte melde dich an</div>
+  <div id="loginHeadline">Wir versuchen dich anzumelden</div>
 
-  <div id="loginButtonBar">
+  <div id="loginButtonBar" style="display:none;">
     <button class="btn" id="btnLogin">Login</button>
     <button class="btn" id="btnRegister">Registrieren</button>
   </div>
@@ -713,6 +765,8 @@ forgotPw.onclick = () => {
       setupShakeDetection();
 
       await safeLoadHabits();
+      const subline = document.getElementById("loginSubline");
+      if (subline) subline.style.display = "none";
       showAppAfterDataLoaded();
       await checkMedalScreen();
       const qr = getQRParam();
@@ -722,6 +776,7 @@ forgotPw.onclick = () => {
     // === AUTOLOGIN + QR FLOW ===
     (async () => {
       const { data } = await supabaseClient.auth.getUser();
+
       if (data.user) {
         currentUser = data.user;
 
@@ -733,6 +788,13 @@ forgotPw.onclick = () => {
         await checkMedalScreen();
         const qr = getQRParam();
         if (qr) await processQRFlow(qr);
+      } else {
+        // Kein Autologin möglich → Login anbieten
+        const headline = document.getElementById("loginHeadline");
+        const btnBar   = document.getElementById("loginButtonBar");
+
+        if (headline) headline.textContent = "Bitte melde dich an";
+        if (btnBar)   btnBar.style.display = "flex";
       }
     })();
     
@@ -1645,11 +1707,100 @@ forgotPw.onclick = () => {
         `;
 
         html += barsHtml(otherHabits);
+
+        // Reset-Button mittig unter der letzten Progressbar (2. Person)
+        html += `
+          <div class="stats-reset-wrap">
+            <button id="statsResetBtn" class="stats-reset-btn">
+              <div class="stats-reset-progress" id="statsResetProgress"></div>
+              <div class="stats-reset-btn-content" id="statsResetContent">
+                <i data-lucide="trash-2"></i>
+              </div>
+            </button>
+          </div>
+        `;
       }
 
       statsViewEl.innerHTML = html;
       // --- NAME-EDITIERUNG AKTIVIEREN ---
       const editableName = document.getElementById("editableName");
+
+      // --- STATS RESET BUTTON ---
+      const statsResetBtn = document.getElementById("statsResetBtn");
+      const statsResetProgress = document.getElementById("statsResetProgress");
+      const statsResetContent = document.getElementById("statsResetContent");
+
+      if (statsResetBtn) {
+        let holdTimer = null;
+        let startTime = null;
+        const HOLD_DURATION = 5000; // 5 Sekunden
+
+        const resetUI = () => {
+          statsResetProgress.style.width = "0%";
+          statsResetBtn.classList.remove("hint");
+          statsResetContent.innerHTML = '<i data-lucide="trash-2"></i>';
+          lucide.createIcons();
+        };
+
+        const executeReset = async () => {
+          try {
+            const { error } = await supabaseClient
+              .from("habits")
+              .update({ progress: 0 })
+              .eq("user_id", currentUser.id);
+
+            if (error) {
+              console.error("stats reset error:", error);
+              resetUI();
+              return;
+            }
+
+            await safeLoadHabits();
+            await refreshStatsLive();
+          } catch (e) {
+            console.error("stats reset fatal error:", e);
+          }
+          resetUI();
+        };
+
+        const startHold = () => {
+          startTime = Date.now();
+          holdTimer = requestAnimationFrame(updateHold);
+        };
+
+        const updateHold = () => {
+          const elapsed = Date.now() - startTime;
+          const percent = Math.min(100, (elapsed / HOLD_DURATION) * 100);
+          statsResetProgress.style.width = percent + "%";
+
+          if (elapsed >= HOLD_DURATION) {
+            cancelAnimationFrame(holdTimer);
+            executeReset();
+          } else {
+            holdTimer = requestAnimationFrame(updateHold);
+          }
+        };
+
+        const cancelHold = () => {
+          if (holdTimer) cancelAnimationFrame(holdTimer);
+          resetUI();
+        };
+
+        // kurzer Klick → Hinweis anzeigen
+        statsResetBtn.addEventListener("click", () => {
+          statsResetBtn.classList.add("hint");
+          statsResetContent.textContent = "5 Sekunden halten";
+        });
+
+        // Hold Events (Mouse + Touch)
+        statsResetBtn.addEventListener("mousedown", startHold);
+        statsResetBtn.addEventListener("touchstart", startHold);
+
+        statsResetBtn.addEventListener("mouseup", cancelHold);
+        statsResetBtn.addEventListener("mouseleave", cancelHold);
+        statsResetBtn.addEventListener("touchend", cancelHold);
+        statsResetBtn.addEventListener("touchcancel", cancelHold);
+      }
 
       editableName.addEventListener("click", () => {
         const current = editableName.textContent.trim();
@@ -2383,7 +2534,7 @@ if ("serviceWorker" in navigator) {
       }
       
 </script>
- 
+
 </body>
 </html>
   
