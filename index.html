@@ -155,6 +155,8 @@
       color: var(--c-text);
     }
 
+    /* rolling-text styles removed */
+
     #loginButtonBar {
       width:100%;
       max-width:400px;
@@ -733,6 +735,7 @@
         ease: "sine.inOut"
       });
     }
+    
 
     function showAppAfterDataLoaded() {
       appPage.style.display = "block";
@@ -1794,6 +1797,21 @@ forgotPw.onclick = () => {
             if (expandArea) expandArea.style.display = 'none';
 
             cardEl.classList.remove('expanded');
+
+            // Before collapsing: remove placeholder/empty subtasks so they are not saved
+            try {
+              const subRows = Array.from(cardEl.querySelectorAll('.subtask'));
+              subRows.forEach(r => {
+                const ti = r.querySelector('.subtask-title');
+                const titleText = (ti ? (ti.value || ti.textContent || ti.placeholder || '') : '').trim();
+                if (!titleText || titleText.toLowerCase().includes('unteraufgabe')) {
+                  r.parentNode && r.parentNode.removeChild(r);
+                }
+              });
+              // update datasets and persist cleaned subtasks
+              try { recalcFromSubtasks(); } catch(e) {}
+              try { saveHabit(cardEl); } catch(e) {}
+            } catch (e) {}
 
             // animate back to original computed height and position
             gsap.to(cardEl, {
