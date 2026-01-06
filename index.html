@@ -2883,19 +2883,24 @@ forgotPw.onclick = () => {
             );
           }
 
-          // 🔔 System notification: habits reset executed
+          // 🔔 System push (server-side): habits reset executed
+          // IMPORTANT: do NOT write directly to `notification_message` from the client (RLS will/should block it).
           try {
-            await supabaseClient
-              .from("notification_message")
-              .insert({
-                user_id: currentUser.id,
-                type: "system",
-                title: "Habits zurückgesetzt",
-                body: "Alle Habits wurden soeben zurückgesetzt.",
-                payload: { source: "stats_commit" }
-              });
+            const { data, error } = await supabaseClient.functions.invoke('send-push', {
+              body: {
+                title: 'Habits zurückgesetzt',
+                body: 'Alle Habits wurden soeben zurückgesetzt.',
+                user_id: currentUser.id
+              }
+            });
+
+            if (error) {
+              console.error('send-push invoke error:', error);
+            } else {
+              console.log('send-push OK:', data);
+            }
           } catch (e) {
-            console.error("notification insert failed:", e);
+            console.error('send-push invoke failed:', e);
           }
           await safeLoadHabits();
           await refreshStatsLive();
