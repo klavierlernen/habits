@@ -597,29 +597,11 @@
       }
 
       .notification-item {
-        display: flex;
-        align-items: center;
-        gap: 14px;
         background: var(--c-card);
         border-radius: 16px;
         padding: 14px 16px;
         margin-bottom: 12px;
         font-weight: 600;
-      }
-
-      .notification-icon {
-        width: 22px;
-        height: 22px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .notification-text {
-        flex: 1;
-        font-size: 0.95rem;
-        line-height: 1.3;
       }
       
       @keyframes bellShake {
@@ -741,10 +723,7 @@
   </div>
 
   <div id="statsView"></div>
-  <div id="notificationsView">
-    <div class="notification-title">Benachrichtigungen</div>
-    <div id="notificationList"></div>
-  </div>
+  <div id="notificationsView"></div>
   <!-- Dünner Shake-Delete-Balken -->
   <div id="deletePanel">
     <span id="deletePanelText">Klicke hier, um alle Habits zu löschen.</span>
@@ -1287,34 +1266,32 @@ forgotPw.onclick = () => {
       if (!currentUser) return;
       if (Notification.permission !== "granted") return;
 
-      // MUST match the VAPID_PUBLIC_KEY used in the Edge Function (Base64URL)
-      const VAPID_PUBLIC_KEY = "BFEmfkSPDd-jmDy4-4Df8citd8ixTlzKYFR_Eoy9osKq7OnRnoiq-mIxkyhwQEtBnJcVUSeo3cyiWwfbjHaYDsU";
+      // TODO: replace with your real VAPID public key (Base64URL)
+      const VAPID_PUBLIC_KEY = "REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY";
 
       function urlBase64ToUint8Array(base64String) {
         const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-        const base64 = (base64String + padding)
-          .replace(/-/g, "+")
-          .replace(/_/g, "/");
+        const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
         const rawData = atob(base64);
-        return Uint8Array.from([...rawData].map(ch => ch.charCodeAt(0)));
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+        return outputArray;
       }
 
       try {
-        // Ensure a single active service worker
-        const reg = await navigator.serviceWorker.ready;
-
-        // Avoid duplicate subscriptions
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub) {
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-          });
-        }
+        const reg = await navigator.serviceWorker.register("/habits/sw.js");
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
 
         const json = sub.toJSON();
-        if (!json?.endpoint || !json?.keys?.p256dh || !json?.keys?.auth) {
-          console.error("Invalid push subscription payload", json);
+        const endpoint = sub.endpoint;
+        const p256dh = json?.keys?.p256dh || "";
+        const auth = json?.keys?.auth || "";
+
+        if (!endpoint || !p256dh || !auth) {
+          console.error("push subscription missing keys");
           return;
         }
 
@@ -1322,24 +1299,21 @@ forgotPw.onclick = () => {
           /iphone|ipad|ipod/i.test(navigator.userAgent) ? "ios" :
           /android/i.test(navigator.userAgent) ? "android" : "desktop";
 
-        // Upsert to prevent duplicates
         const { error } = await supabaseClient
           .from("push_subscription")
-          .upsert({
+          .insert({
             user_id: currentUser.id,
-            endpoint: json.endpoint,
-            p256dh: json.keys.p256dh,
-            auth: json.keys.auth,
+            endpoint,
+            p256dh,
+            auth,
             platform,
             user_agent: navigator.userAgent || "",
             last_used_at: new Date().toISOString()
-          }, { onConflict: "endpoint" });
+          });
 
-        if (error) {
-          console.error("push_subscription upsert error:", error);
-        }
+        if (error) console.error("push_subscription insert error:", error);
       } catch (e) {
-        console.error("registerPushSubscription failed:", e);
+        console.error("registerPushSubscription error:", e);
       }
     }
     
@@ -1415,7 +1389,7 @@ forgotPw.onclick = () => {
         <div class="card-face back">
 
           <!-- GPS AREA -->
-          <div class="quarter" data-role="gpsArea">
+          <div class="quarter" id="gpsArea">
             <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
               <i data-lucide="map-pin" style="width:28px;height:28px;color:#777;"></i>
 
@@ -1438,25 +1412,25 @@ forgotPw.onclick = () => {
           </div>
 
           <!-- UNDO / DECREMENT AREA -->
-          <div class="quarter" data-role="undoArea">
+          <div class="quarter" id="undoArea">
             <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
               <i data-lucide="timer-reset" style="width:28px;height:28px;color:#777;"></i>
             </div>
           </div>
 
           <!-- SQUARES-SUBTRACT AREA -->
-          <div class="quarter" data-role="collapseArea">
+          <div class="quarter" id="collapseArea">
             <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
               <i data-lucide="squares-subtract" style="width:28px;height:28px;color:#777;"></i>
             </div>
           </div>
 
           <!-- Counter & GPS Input -->
-      <div class="quarter" data-role="numAreaWrapper">
-        <div data-role="numArea">0</div>
+          <div class="quarter" id="numAreaWrapper">
+            <div id="numArea">0</div>
 
-        <input 
-          data-role="gpsInput"
+            <input 
+              id="gpsInput"
               type="text"
               placeholder="Adresse eingeben..."
               style="
@@ -1494,7 +1468,7 @@ forgotPw.onclick = () => {
           counter.style.display = "none";
         }
       }
-      const numArea = card.querySelector('[data-role="numArea"]');
+      const numArea = card.querySelector("#numArea");
 
       const line1 = card.querySelector(".gps-address-line1");
       const line2 = card.querySelector(".gps-address-line2");
@@ -1569,11 +1543,11 @@ forgotPw.onclick = () => {
     function attachCardLogic(card) {
       const input     = card.querySelector(".card-input");
       const counter   = card.querySelector(".counter");
-      const gpsArea   = card.querySelector('[data-role="gpsArea"]');
-      const numArea   = card.querySelector('[data-role="numArea"]');
-      const gpsInput  = card.querySelector('[data-role="gpsInput"]');
-      const undoArea  = card.querySelector('[data-role="undoArea"]');
-      const collapseArea = card.querySelector('[data-role="collapseArea"]');
+      const gpsArea   = card.querySelector("#gpsArea");
+      const numArea   = card.querySelector("#numArea");
+      const gpsInput  = card.querySelector("#gpsInput");
+      const undoArea  = card.querySelector("#undoArea");
+      const collapseArea = card.querySelector("#collapseArea");
 
       let swipeStartX = 0;
       let swipeEndX   = 0;
@@ -2482,6 +2456,47 @@ forgotPw.onclick = () => {
       if (error) console.error("saveHabit error:", error);
     }
 
+    // Add-Button: erstellt nur DB-Datensatz, niemals lokal
+    addBtnEl.addEventListener("click", async () => {
+      if (addBtnEl.dataset.mode === "stats") {
+        addBtnEl.dataset.mode = "main";
+        statsOpen = false;
+        gsap.to("#statsView",{top:"100svh",duration:0.42,ease:"power1.in"});
+        refreshAddButtonIcon();
+        return;
+      }
+
+      if (habits.length >= 3) return;
+
+      if (!currentUser) {
+        const { data } = await supabaseClient.auth.getUser();
+        currentUser = data.user;
+        if (!currentUser) return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from("habits")
+        .insert({
+          user_id: currentUser.id,
+          title: "",
+          color: "#e4e4e4",
+          progress: 0,
+          goal: 1,
+          appear_once: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("insert habit error:", error);
+        return;
+      }
+
+      habits.push(data);
+      const index = habits.length - 1;
+      createCardFromHabit(data, index, 0);
+      refreshAddButtonIcon();
+    });
 
   async function loadOtherUser() {
     if (!currentUser) return null;
@@ -2515,95 +2530,6 @@ forgotPw.onclick = () => {
     return data || [];
   }
   
-  // ============================
-  // STREAK BUTTON LONG-PRESS LOGIC (FINAL)
-  // ============================
-  document.addEventListener("DOMContentLoaded", () => {
-    const blueBtn = document.querySelector(".stats-reset-btn.blue");
-    if (!blueBtn) return;
-
-    const HOLD_MS = 1200;
-    let holdTimer = null;
-    let fired = false;
-
-    const clearHold = () => {
-      if (holdTimer) clearTimeout(holdTimer);
-      holdTimer = null;
-      fired = false;
-    };
-
-    blueBtn.addEventListener("pointerdown", () => {
-      clearHold();
-      holdTimer = setTimeout(async () => {
-        if (fired) return;
-        fired = true;
-        clearHold();
-
-        // 1. bestehende Reset-Logik (falls vorhanden)
-        if (typeof checkWeeklyStreakAndReset === "function") {
-          await checkWeeklyStreakAndReset();
-        }
-
-        // 2. 🔔 GARANTIERTER INSERT in notification_message
-        try {
-          const { data: authData } = await supabaseClient.auth.getUser();
-          const user = authData?.user;
-          if (!user) {
-            console.error("No authenticated user");
-            return;
-          }
-
-          const { data, error } = await supabaseClient
-            .from("notification_message")
-            .insert({
-              user_id: user.id,
-              type: "WARNING",
-              title: "Habits zurückgesetzt",
-              body: "Die Habits wurden soeben zurückgesetzt."
-            })
-            .select()
-            .single();
-
-          if (error) {
-            console.error("❌ notification insert failed:", error);
-          } else {
-            console.log("✅ notification created:", data);
-          }
-
-        } catch (err) {
-          console.error("❌ unexpected notification error:", err);
-        }
-
-      }, HOLD_MS);
-    });
-
-    blueBtn.addEventListener("pointerup", clearHold);
-    blueBtn.addEventListener("pointerleave", clearHold);
-    blueBtn.addEventListener("pointercancel", clearHold);
-  });
-
-// ============================
-// Helper: weaker user by summed progress
-// ============================
-async function getWeakerUserId() {
-  if (!currentUser) return null;
-
-  const other = await loadOtherUser();
-  if (!other) return null;
-
-  const myHabits = await loadHabitsForUser(currentUser.id);
-  const otherHabits = await loadHabitsForUser(other.id);
-
-  const sumProgress = (hs) =>
-    hs.reduce((acc, h) => acc + (parseInt(h.progress) || 0), 0);
-
-  const myScore = sumProgress(myHabits);
-  const otherScore = sumProgress(otherHabits);
-
-  // weaker = lower or equal score
-  return myScore <= otherScore ? currentUser.id : other.id;
-}
-
   function barsHtml(habits) {
     let html = "";
     for (let i = 0; i < 3; i++) {
@@ -2718,7 +2644,7 @@ async function getWeakerUserId() {
         `;
 
       notificationsViewEl.innerHTML = `
-        <div class="notification-title">Reminders</div>
+        <div class="notification-title">Benachrichtigungen</div>
         ${itemsHtml}
       `;
     }
@@ -2952,25 +2878,6 @@ async function getWeakerUserId() {
             );
           }
 
-          // 🔔 System push (server-side): habits reset executed
-          // IMPORTANT: do NOT write directly to `notification_message` from the client (RLS will/should block it).
-          try {
-            const { data, error } = await supabaseClient.functions.invoke('send-push', {
-              body: {
-                title: 'Habits zurückgesetzt',
-                body: 'Alle Habits wurden soeben zurückgesetzt.',
-                user_id: currentUser.id
-              }
-            });
-
-            if (error) {
-              console.error('send-push invoke error:', error);
-            } else {
-              console.log('send-push OK:', data);
-            }
-          } catch (e) {
-            console.error('send-push invoke failed:', e);
-          }
           await safeLoadHabits();
           await refreshStatsLive();
         },
@@ -3297,38 +3204,31 @@ async function getWeakerUserId() {
     }
 
     async function subscribeUserToPush() {
-      if (!("serviceWorker" in navigator)) return;
+      const reg = await navigator.serviceWorker.ready;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn("subscribeUserToPush: no user yet");
-        return;
-      }
+      const vapidKey = urlBase64ToUint8Array("BIuQ1Oi-yAKNjlbzj8r_wUjBY9Q1GRKzr7ZM_CM3ZDZOXHm0HllkPnX4s7H6AEKqIBpDvTdHqgLgo7VjpGW68f0");
 
-      const registration = await navigator.serviceWorker.ready;
-
-      const existing = await registration.pushManager.getSubscription();
-      if (existing) return;
-
-      const subscription = await registration.pushManager.subscribe({
+      const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: VAPID_PUBLIC_KEY
+        applicationServerKey: vapidKey
       });
 
-      const p256dh = btoa(
-        String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")))
-      );
-      const auth = btoa(
-        String.fromCharCode(...new Uint8Array(subscription.getKey("auth")))
-      );
+      const { error } = await supabaseClient
+        .from("push_subscriptions")
+        .insert({
+          user_id: currentUser.id,
+          endpoint: sub.endpoint,
+          p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("p256dh")))),
+          auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("auth"))))
+        });
 
-      await supabase.from("push_subscription").upsert({
-        user_id: user.id,
-        endpoint: subscription.endpoint,
-        p256dh,
-        auth
-      });
+      if (error) console.error("push subscribe error", error);
     }
+    
+     (async () => {
+        await requestAllPermissions();
+      await subscribeUserToPush();
+    })();
     
     function getQRParam() {
       const params = new URLSearchParams(window.location.search);
@@ -3784,7 +3684,6 @@ if ("serviceWorker" in navigator) {
       }
       
 </script>
-
 
 </body>
 </html>
