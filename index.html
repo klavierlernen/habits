@@ -575,6 +575,48 @@
         -webkit-tap-highlight-color: transparent;
         cursor: pointer;
       }
+      
+      #notificationsView {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 100svh;
+        bottom: 0;
+        background: var(--c-bg);
+        color: var(--c-text);
+        padding: 24px;
+        padding-bottom: 140px;
+        overflow-y: auto;
+        z-index: 55;
+      }
+
+      .notification-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 24px;
+      }
+
+      .notification-item {
+        background: var(--c-card);
+        border-radius: 16px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
+      
+      @keyframes bellShake {
+        0% { transform: rotate(0deg); }
+        20% { transform: rotate(-10deg); }
+        40% { transform: rotate(10deg); }
+        60% { transform: rotate(-6deg); }
+        80% { transform: rotate(6deg); }
+        100% { transform: rotate(0deg); }
+      }
+
+      .bell-shake {
+        animation: bellShake 1.2s ease-in-out infinite;
+        transform-origin: 50% 0%;
+      }
   </style>
   <!-- Counter positioning fix for expanded/front mode -->
   <!-- (removed previous override, see below for new state-based CSS) -->
@@ -670,13 +712,18 @@
     <button class="btn-half btn-plus" id="addBtn" data-mode="main">
       <i data-lucide="plus"></i>
     </button>
+
+    <button class="btn-half btn-bell" id="bellBtn">
+      <i data-lucide="bell"></i>
+    </button>
+
     <button class="btn-half btn-stats" id="statsBtn">
       <i data-lucide="bar-chart-2"></i>
     </button>
   </div>
 
   <div id="statsView"></div>
-
+  <div id="notificationsView"></div>
   <!-- Dünner Shake-Delete-Balken -->
   <div id="deletePanel">
     <span id="deletePanelText">Klicke hier, um alle Habits zu löschen.</span>
@@ -708,6 +755,12 @@
     const statsViewEl   = document.getElementById("statsView");
     const deletePanel   = document.getElementById("deletePanel");
     const deleteAllBtn  = document.getElementById("deleteAllBtn");
+    const bellBtnEl = document.getElementById("bellBtn");
+    const notificationsViewEl = document.getElementById("notificationsView");
+   
+   document.addEventListener("DOMContentLoaded", () => {
+     refreshBellIcon();
+   });
 
     const slotOrder = ["slot3","slot2","slot1"];
 
@@ -716,6 +769,16 @@
     let authMode    = "login";
     let statsOpen   = false;
     let otherUser   = null;
+
+    // unread badge comes from DB
+    let unreadNotificationCount = 0;
+
+    // Push/Notification capability
+    const supportsPush = (
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window
+    );
 
     let deleteTimeout = null;
     let deletePanelVisible = false;
@@ -727,6 +790,111 @@
       "#ea580c","#ca8a04","#4d7c0f","#15803d","#047857","#0f766e",
       "#0369a1","#1d4ed8","#4338ca","#6d28d9","#7e22ce","#be185d"
     ];
+    
+    addBtnEl.addEventListener("click", async () => {
+
+      // --- Close Notifications ---
+      if (addBtnEl.dataset.mode === "notifications") {
+        addBtnEl.dataset.mode = "main";
+        gsap.to("#notificationsView", {
+          top: "100svh",
+          duration: 0.42,
+          ease: "power1.in"
+        });
+        refreshAddButtonIcon();
+        return;
+      }
+
+      // --- Close Stats ---
+      if (addBtnEl.dataset.mode === "stats") {
+        addBtnEl.dataset.mode = "main";
+        statsOpen = false;
+        gsap.to("#statsView", {
+          top: "100svh",
+          duration: 0.42,
+          ease: "power1.in"
+        });
+        refreshAddButtonIcon();
+        return;
+      }
+
+      // --- Normal Add Habit ---
+      if (habits.length >= 3) return;
+
+      if (!currentUser) {
+        const { data } = await supabaseClient.auth.getUser();
+        currentUser = data.user;
+        if (!currentUser) return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from("habits")
+        .insert({
+          user_id: currentUser.id,
+          title: "",
+          color: "#e4e4e4",
+          progress: 0,
+          goal: 1,
+          appear_once: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("insert habit error:", error);
+        return;
+      }
+
+      habits.push(data);
+      createCardFromHabit(data, habits.length - 1, 0);
+      refreshAddButtonIcon();
+    });
+    
+    bellBtnEl.addEventListener("click", async () => {
+
+      // iOS/PWA requirement: permission request must be user-triggered
+      if (supportsPush && Notification.permission === "default") {
+        const res = await Notification.requestPermission();
+        await ensurePushInfoRow();
+
+        if (res === "granted") {
+          await registerPushSubscription();
+        }
+      } else {
+        // keep DB in sync even if already decided
+        await ensurePushInfoRow();
+      }
+
+      // Update badge before opening
+      await loadUnreadNotificationCount();
+      refreshBellIcon();
+
+      await renderNotifications();
+      lucide.createIcons({ scope: notificationsViewEl });
+
+      statsOpen = false;
+      addBtnEl.dataset.mode = "notifications";
+
+      gsap.to("#notificationsView", {
+        top: "0svh",
+        duration: 0.42,
+        ease: "power1.out"
+      });
+
+      gsap.to("#statsView", {
+        top: "100svh",
+        duration: 0.42,
+        ease: "power1.in"
+      });
+
+      refreshAddButtonIcon();
+
+      // Mark as read after opening
+      await markAllNotificationsRead();
+      await loadUnreadNotificationCount();
+      refreshBellIcon();
+    });
+
 
     function darken(hex, f=0.55) {
       let r = parseInt(hex.slice(1,3),16)*f|0;
@@ -859,6 +1027,9 @@ forgotPw.onclick = () => {
 
       const { data } = await supabaseClient.auth.getUser();
       currentUser = data.user;
+      await ensurePushInfoRow();
+      await loadUnreadNotificationCount();
+      refreshBellIcon();
 
       await requestAllPermissions();
       setupRealtime();
@@ -879,6 +1050,9 @@ forgotPw.onclick = () => {
 
       if (data.user) {
         currentUser = data.user;
+        await ensurePushInfoRow();
+        await loadUnreadNotificationCount();
+        refreshBellIcon();
 
         setupRealtime();
         setupShakeDetection();
@@ -907,6 +1081,13 @@ forgotPw.onclick = () => {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'habits' },
+          async () => {
+            if (statsOpen) await refreshStatsLive();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'streaks' },
           async () => {
             if (statsOpen) await refreshStatsLive();
           }
@@ -976,21 +1157,184 @@ forgotPw.onclick = () => {
     function refreshAddButtonIcon() {
       const addBtn = addBtnEl;
 
+      if (addBtn.dataset.mode === "notifications") {
+        addBtn.innerHTML = '<i data-lucide="house"></i>';
+        lucide.createIcons();
+        return;
+      }
+
       if (addBtn.dataset.mode === "stats") {
         addBtn.innerHTML = '<i data-lucide="house"></i>';
-        addBtn.classList.remove("btn-plus");
         lucide.createIcons();
         return;
       }
 
       if (habits.length < 3) {
         addBtn.innerHTML = '<i data-lucide="plus"></i>';
-        addBtn.classList.add("btn-plus");
       } else {
         addBtn.innerHTML = '<i data-lucide="home"></i>';
-        addBtn.classList.remove("btn-plus");
       }
+
       lucide.createIcons();
+    }
+    
+    // -------------------------------
+    // Notifications / Push (DB-backed)
+    // -------------------------------
+
+    async function ensurePushInfoRow() {
+      if (!currentUser) return;
+      const uid = currentUser.id;
+
+      const permission_state =
+        !supportsPush ? "unsupported" :
+        (Notification.permission === "granted" ? "granted" :
+         Notification.permission === "denied" ? "denied" : "unknown");
+
+      const { error } = await supabaseClient
+        .from("push_info")
+        .upsert({
+          user_id: uid,
+          permission_state,
+          platform_capabilities: {
+            supportsPush,
+            userAgent: navigator.userAgent || ""
+          }
+        });
+
+      if (error) console.error("push_info upsert error:", error);
+    }
+
+    async function loadUnreadNotificationCount() {
+      if (!currentUser) return 0;
+      const uid = currentUser.id;
+
+      const { count, error } = await supabaseClient
+        .from("notification_message")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", uid)
+        .is("read_at", null);
+
+      if (error) {
+        console.error("unread count error:", error);
+        return 0;
+      }
+
+      unreadNotificationCount = count || 0;
+      return unreadNotificationCount;
+    }
+
+    async function loadNotifications(limit = 30) {
+      if (!currentUser) return [];
+      const uid = currentUser.id;
+
+      const { data, error } = await supabaseClient
+        .from("notification_message")
+        .select("id, type, title, body, payload, created_at, read_at")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error("loadNotifications error:", error);
+        return [];
+      }
+      return data || [];
+    }
+
+    async function markAllNotificationsRead() {
+      if (!currentUser) return;
+      const uid = currentUser.id;
+
+      const { error } = await supabaseClient
+        .from("notification_message")
+        .update({ read_at: new Date().toISOString() })
+        .eq("user_id", uid)
+        .is("read_at", null);
+
+      if (error) {
+        console.error("markAllNotificationsRead error:", error);
+        return;
+      }
+
+      unreadNotificationCount = 0;
+    }
+
+    // NOTE: Push subscription requires HTTPS (or localhost). It will not work on file://
+    async function registerPushSubscription() {
+      if (!supportsPush) return;
+      if (!currentUser) return;
+      if (Notification.permission !== "granted") return;
+
+      // TODO: replace with your real VAPID public key (Base64URL)
+      const VAPID_PUBLIC_KEY = "REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY";
+
+      function urlBase64ToUint8Array(base64String) {
+        const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+        const rawData = atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+        return outputArray;
+      }
+
+      try {
+        const reg = await navigator.serviceWorker.register("/habits/sw.js");
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+
+        const json = sub.toJSON();
+        const endpoint = sub.endpoint;
+        const p256dh = json?.keys?.p256dh || "";
+        const auth = json?.keys?.auth || "";
+
+        if (!endpoint || !p256dh || !auth) {
+          console.error("push subscription missing keys");
+          return;
+        }
+
+        const platform =
+          /iphone|ipad|ipod/i.test(navigator.userAgent) ? "ios" :
+          /android/i.test(navigator.userAgent) ? "android" : "desktop";
+
+        const { error } = await supabaseClient
+          .from("push_subscription")
+          .insert({
+            user_id: currentUser.id,
+            endpoint,
+            p256dh,
+            auth,
+            platform,
+            user_agent: navigator.userAgent || "",
+            last_used_at: new Date().toISOString()
+          });
+
+        if (error) console.error("push_subscription insert error:", error);
+      } catch (e) {
+        console.error("registerPushSubscription error:", e);
+      }
+    }
+    
+    
+    function refreshBellIcon() {
+      if (!bellBtnEl) return;
+
+      // bell-dot if unread notifications exist
+      const hasUnread = (unreadNotificationCount || 0) > 0;
+      const icon = hasUnread ? "bell-dot" : "bell";
+
+      bellBtnEl.innerHTML = `<i data-lucide="${icon}"></i>`;
+      lucide.createIcons({ scope: bellBtnEl });
+
+      // shake bell until permission is granted (only if supported)
+      const perm = (window.Notification && Notification.permission) ? Notification.permission : "denied";
+      if (supportsPush && perm !== "granted") {
+        bellBtnEl.classList.add("bell-shake");
+      } else {
+        bellBtnEl.classList.remove("bell-shake");
+      }
     }
 
     function createCardFromHabit(habit, index, delay = 0) {
@@ -2271,8 +2615,53 @@ forgotPw.onclick = () => {
 
       return data.current_streak || 0;
     }
+    
+    async function renderNotifications() {
+      const rows = await loadNotifications(30);
+
+      const itemsHtml = (rows.length > 0)
+        ? rows.map(r => {
+            const isUnread = !r.read_at;
+            const title = (r.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const body = (r.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const opacity = isUnread ? 1 : 0.55;
+            return `
+              <div class="notification-item" style="opacity:${opacity};">
+                <div style="font-weight:800; margin-bottom:4px;">${title}</div>
+                <div style="font-weight:600;">${body}</div>
+              </div>
+            `;
+          }).join("")
+        : `
+          <div class="notification-item">
+            <div style="font-weight:800; margin-bottom:4px;">Willkommen</div>
+            <div style="font-weight:600;">Hier erscheinen bald echte Benachrichtigungen.</div>
+          </div>
+          <div class="notification-item">
+            <div style="font-weight:800; margin-bottom:4px;">Tipp</div>
+            <div style="font-weight:600;">Du kannst später Push-Aktionen aus deinen Workflows auslösen.</div>
+          </div>
+        `;
+
+      notificationsViewEl.innerHTML = `
+        <div class="notification-title">Benachrichtigungen</div>
+        ${itemsHtml}
+      `;
+    }
 
     async function renderStats(myHabits, otherHabits, otherUserData) {
+      // --- Ensure otherUserData is loaded before rendering ---
+      if (!otherUserData) {
+        try {
+          otherUserData = await loadOtherUser();
+          otherUser = otherUserData; // keep global in sync
+          if (otherUserData) {
+            otherHabits = await loadHabitsForUser(otherUserData.id);
+          }
+        } catch (e) {
+          console.error("Failed to load other user for stats rendering:", e);
+        }
+      }
       const myName = (
         currentUser?.user_metadata?.display_name ||
         currentUser?.email?.split("@")[0] ||
@@ -2311,14 +2700,11 @@ forgotPw.onclick = () => {
             font-weight:700;
             line-height:1;
           ">
-            <i
-              data-lucide="${
-                otherUserData
-                  ? (myStreak > otherStreak ? 'trophy' : myStreak < otherStreak ? 'turtle' : 'medal')
-                  : 'medal'
-              }"
-              style="width:22px; height:22px;"
-            ></i>
+            ${
+              otherUserData && myStreak !== otherStreak
+                ? `<i data-lucide="${myStreak > otherStreak ? 'trophy' : 'turtle'}" style="width:22px; height:22px;"></i>`
+                : ``
+            }
             <span>${myStreak}</span>
           </div>
 
@@ -2355,12 +2741,11 @@ forgotPw.onclick = () => {
               font-weight:700;
               line-height:1;
             ">
-              <i
-                data-lucide="${
-                  myStreak > otherStreak ? 'turtle' : myStreak < otherStreak ? 'trophy' : 'medal'
-                }"
-                style="width:22px; height:22px;"
-              ></i>
+              ${
+                myStreak !== otherStreak
+                  ? `<i data-lucide="${myStreak > otherStreak ? 'turtle' : 'trophy'}" style="width:22px; height:22px;"></i>`
+                  : ``
+              }
               <span>${otherStreak}</span>
             </div>
           </div>
@@ -2371,13 +2756,6 @@ forgotPw.onclick = () => {
         // Two buttons side-by-side with equal width
         html += `
           <div class="stats-reset-wrap" style="gap:12px;">
-            <button id="statsResetBtn" class="stats-reset-btn">
-              <div class="stats-reset-progress" id="statsResetProgress"></div>
-              <div class="stats-reset-btn-content" id="statsResetContent">
-                <i data-lucide="trash-2"></i>
-              </div>
-            </button>
-
             <button id="statsCommitBtn" class="stats-reset-btn blue">
               <div class="stats-reset-progress" id="statsCommitProgress"></div>
               <div class="stats-reset-btn-content" id="statsCommitContent">
@@ -2389,16 +2767,12 @@ forgotPw.onclick = () => {
       }
 
       statsViewEl.innerHTML = html;
+      lucide.createIcons({ scope: statsViewEl });
       // --- NAME-EDITIERUNG AKTIVIEREN ---
       const editableName = document.getElementById("editableName");
 
       // --- STATS RESET & COMMIT BUTTONS (shared hold logic) ---
       const HOLD_DURATION = 5000;
-
-      // ---------- RESET BUTTON ----------
-      const statsResetBtn = document.getElementById("statsResetBtn");
-      const statsResetProgress = document.getElementById("statsResetProgress");
-      const statsResetContent = document.getElementById("statsResetContent");
 
       // ---------- COMMIT BUTTON ----------
       const statsCommitBtn = document.getElementById("statsCommitBtn");
@@ -2454,31 +2828,6 @@ forgotPw.onclick = () => {
         btn.addEventListener("touchcancel", cancelHold);
       }
 
-      // ---------- RESET EXECUTION (BOTH DISPLAYED USERS, RPC) ----------
-      setupHoldButton(
-        statsResetBtn,
-        statsResetProgress,
-        statsResetContent,
-        async () => {
-          const users = otherUser
-            ? [currentUser.id, otherUser.id]
-            : [currentUser.id];
-
-          const { error } = await supabaseClient.rpc(
-            "reset_progress_for_users",
-            { uids: users }
-          );
-
-          if (error) {
-            console.error("RPC reset_progress_for_users error:", error);
-            return;
-          }
-
-          await safeLoadHabits();
-          await refreshStatsLive();
-        },
-        "5 Sekunden halten"
-      );
 
       // ---------- COMMIT / STREAK EXECUTION ----------
       setupHoldButton(
@@ -2501,19 +2850,24 @@ forgotPw.onclick = () => {
                 return goal > 0 && h.progress >= goal;
               });
 
-            // ➜ streak NUR bei vollständigem Zustand erhöhen
-            if (allFull) {
-              const { data: streakRow } = await supabaseClient
-                .from("streaks")
-                .select("current_streak")
-                .eq("user_id", uid)
-                .single();
+            // --- Streak logic: increment if allFull, else reset to 0 ---
+            const { data: streakRow } = await supabaseClient
+              .from("streaks")
+              .select("current_streak")
+              .eq("user_id", uid)
+              .single();
 
+            if (allFull) {
               const nextStreak = (streakRow?.current_streak || 0) + 1;
 
               await supabaseClient
                 .from("streaks")
                 .update({ current_streak: nextStreak })
+                .eq("user_id", uid);
+            } else {
+              await supabaseClient
+                .from("streaks")
+                .update({ current_streak: 0 })
                 .eq("user_id", uid);
             }
 
@@ -2597,22 +2951,41 @@ forgotPw.onclick = () => {
     renderStats(myHabits, otherHabits, otherUser);
   }
 
-  statsBtnEl.addEventListener("click", async () => {
-    if (!currentUser) return;
+    statsBtnEl.addEventListener("click", async () => {
 
-    otherUser = await loadOtherUser();
-    const [myHabits, otherHabits] = await Promise.all([
-      loadHabitsForUser(currentUser.id),
-      otherUser ? loadHabitsForUser(otherUser.id) : Promise.resolve([])
-    ]);
+      // Close notifications if open
+      gsap.to("#notificationsView", {
+        top: "100svh",
+        duration: 0.42,
+        ease: "power1.in"
+      });
 
-    renderStats(myHabits, otherHabits, otherUser);
+      addBtnEl.dataset.mode = "stats";
+      statsOpen = true;
 
-    statsOpen = true;
-    addBtnEl.dataset.mode = "stats";
-    refreshAddButtonIcon();
-    gsap.to("#statsView",{top:0,duration:0.45,ease:"power1.out"});
-  });
+      const myHabits = habits;
+      let otherHabits = [];
+      let otherUserData = otherUser;
+
+      if (!otherUserData) {
+        otherUserData = await loadOtherUser();
+        otherUser = otherUserData;
+      }
+
+      if (otherUserData) {
+        otherHabits = await loadHabitsForUser(otherUserData.id);
+      }
+
+      await renderStats(myHabits, otherHabits, otherUserData);
+
+      gsap.to("#statsView", {
+        top: "0svh",
+        duration: 0.42,
+        ease: "power1.out"
+      });
+
+      refreshAddButtonIcon();
+    });
 
   // === Shake Detection + UNO-Wiggle/Hide ===
 
