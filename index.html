@@ -3228,31 +3228,38 @@ forgotPw.onclick = () => {
     }
 
     async function subscribeUserToPush() {
-      const reg = await navigator.serviceWorker.ready;
+      if (!("serviceWorker" in navigator)) return;
 
-      const vapidKey = urlBase64ToUint8Array("BIuQ1Oi-yAKNjlbzj8r_wUjBY9Q1GRKzr7ZM_CM3ZDZOXHm0HllkPnX4s7H6AEKqIBpDvTdHqgLgo7VjpGW68f0");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn("subscribeUserToPush: no user yet");
+        return;
+      }
 
-      const sub = await reg.pushManager.subscribe({
+      const registration = await navigator.serviceWorker.ready;
+
+      const existing = await registration.pushManager.getSubscription();
+      if (existing) return;
+
+      const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: vapidKey
+        applicationServerKey: VAPID_PUBLIC_KEY
       });
 
-      const { error } = await supabaseClient
-        .from("push_subscription")
-        .insert({
-          user_id: currentUser.id,
-          endpoint: sub.endpoint,
-          p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("p256dh")))),
-          auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("auth"))))
-        });
+      const p256dh = btoa(
+        String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")))
+      );
+      const auth = btoa(
+        String.fromCharCode(...new Uint8Array(subscription.getKey("auth")))
+      );
 
-      if (error) console.error("push subscribe error", error);
+      await supabase.from("push_subscription").upsert({
+        user_id: user.id,
+        endpoint: subscription.endpoint,
+        p256dh,
+        auth
+      });
     }
-    
-     (async () => {
-        await requestAllPermissions();
-      await subscribeUserToPush();
-    })();
     
     function getQRParam() {
       const params = new URLSearchParams(window.location.search);
