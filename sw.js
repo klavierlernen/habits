@@ -11,8 +11,8 @@ const ASSETS = [
   "/habits/",
   "/habits/index.html",
   "/habits/manifest.json",
-  "/habits/icon-192.png",
-  "/habits/icon-512.png"
+  "/habits/image.png",
+  "/habits/image.png"
 ];
 
 // -----------------------------------------------------
@@ -64,8 +64,8 @@ self.addEventListener("push", event => {
 
   const options = {
     body,
-    icon: "/habits/icon-192.png",
-    badge: "/habits/icon-192.png",
+    icon: "/habits/image.png",
+    badge: "/habits/image.png",
     data: {
       url: data.url || "/habits/",
       type: data.type || "generic"
