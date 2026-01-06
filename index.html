@@ -2515,6 +2515,75 @@ forgotPw.onclick = () => {
     return data || [];
   }
   
+  // ============================
+  // STREAK BUTTON LONG-PRESS LOGIC
+  // ============================
+  let streakPressTimer = null;
+  const STREAK_LONGPRESS_MS = 1200;
+  document.addEventListener("DOMContentLoaded", () => {
+    // Attach long-press detection to the blue streak button
+    const blueBtn = document.querySelector('.stats-reset-btn.blue');
+    if (!blueBtn) return;
+
+    let fired = false;
+    let timeout = null;
+    function clearStreakLongPress() {
+      if (timeout) clearTimeout(timeout);
+      timeout = null;
+      fired = false;
+    }
+
+    blueBtn.addEventListener('pointerdown', () => {
+      clearStreakLongPress();
+      timeout = setTimeout(async () => {
+        if (fired) return;
+        fired = true;
+        clearStreakLongPress();
+        // Call existing streak check/reset logic (reuse function)
+        if (typeof checkWeeklyStreakAndReset === "function") {
+          await checkWeeklyStreakAndReset();
+        }
+        await createNotificationForWeakerUser();
+      }, STREAK_LONGPRESS_MS);
+    });
+    blueBtn.addEventListener('pointerup', clearStreakLongPress);
+    blueBtn.addEventListener('pointerleave', clearStreakLongPress);
+  });
+
+  // Helper to get the weaker user id
+  async function getWeakerUserId() {
+    if (!currentUser) return null;
+
+    const other = await loadOtherUser();
+    if (!other) return null;
+
+    const myHabits = await loadHabitsForUser(currentUser.id);
+    const otherHabits = await loadHabitsForUser(other.id);
+
+    const sum = hs => hs.reduce((a,h)=>a+(parseInt(h.progress)||0),0);
+
+    const myScore = sum(myHabits);
+    const otherScore = sum(otherHabits);
+
+    return myScore <= otherScore ? currentUser.id : other.id;
+  }
+
+  // Create notification for weaker user
+  async function createNotificationForWeakerUser() {
+    const targetUserId = await getWeakerUserId();
+    if (!targetUserId) return;
+
+    const { error } = await supabaseClient
+      .from("notification_message")
+      .insert({
+        user_id: targetUserId,
+        type: "WARNING",
+        body: "Dein Fortschritt liegt aktuell hinter dem deines Partners."
+      });
+
+    if (error) console.error("notification insert error:", error);
+  }
+
   function barsHtml(habits) {
     let html = "";
     for (let i = 0; i < 3; i++) {
