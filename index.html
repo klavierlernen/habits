@@ -388,7 +388,9 @@
     }
 
     .stats-name { font-size:2rem; font-weight:700; margin-bottom:20px; }
-    .stat-bar { width:100%; height:48px; background: var(--c-card); border-radius:16px; margin-bottom:18px; overflow:hidden; }
+    .stat-item { margin-bottom:18px; }
+    .stat-bar { width:100%; height:48px; background: var(--c-card); border-radius:16px; overflow:hidden; }
+    .stat-bar.is-clickable { cursor:pointer; }
     .stat-fill {
       height:100%;
       width:0;
@@ -402,6 +404,81 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+    }
+
+    .stat-calendar {
+      --cal-day: 28px;
+      --cal-gap: 8px;
+      max-height:0;
+      overflow:hidden;
+      opacity:0;
+      transform:translateY(-6px);
+      transition:max-height 0.28s ease, opacity 0.28s ease, transform 0.28s ease;
+      margin-top:8px;
+      padding:0;
+      display:flex;
+      flex-direction:column;
+      align-items:stretch;
+      width:100%;
+    }
+
+    .stat-calendar.is-open {
+      max-height:220px;
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .stat-calendar-header {
+      font-size:0.95rem;
+      font-weight:700;
+    }
+
+    .stat-calendar-header-row {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+      gap:10px;
+      width:100%;
+    }
+
+    .stat-cal-nav {
+      width:28px;
+      height:28px;
+      border-radius:999px;
+      border:none;
+      background:var(--c-card);
+      color:var(--c-text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+    }
+
+    .stat-calendar-grid {
+      display:grid;
+      grid-template-columns:repeat(7, minmax(0, 1fr));
+      justify-items:center;
+      gap:var(--cal-gap);
+      width:100%;
+    }
+
+    .stat-day {
+      width:var(--cal-day);
+      height:var(--cal-day);
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.75rem;
+      font-weight:700;
+      color:var(--c-bg);
+      letter-spacing:0.2px;
+    }
+
+    .stat-day.inactive {
+      background:var(--c-card);
+      color:var(--c-text);
     }
 
     .stats-reset-wrap {
@@ -770,9 +847,10 @@
     const bellBtnEl = document.getElementById("bellBtn");
     const notificationsViewEl = document.getElementById("notificationsView");
    
-   document.addEventListener("DOMContentLoaded", () => {
-     refreshBellIcon();
-   });
+  document.addEventListener("DOMContentLoaded", () => {
+    refreshBellIcon();
+    checkForAppUpdate();
+  });
 
     const slotOrder = ["slot3","slot2","slot1"];
 
@@ -812,6 +890,8 @@
       "PushManager" in window &&
       "Notification" in window
     );
+
+    const APP_VERSION = 1;
 
     let deleteTimeout = null;
     let deletePanelVisible = false;
@@ -1098,7 +1178,6 @@ forgotPw.onclick = () => {
 
       const { data } = await supabaseClient.auth.getUser();
       currentUser = data.user;
-      await ensureStreakViewRow();
       await ensurePushInfoRow();
       await loadUnreadNotificationCount();
       refreshBellIcon();
@@ -1123,8 +1202,6 @@ forgotPw.onclick = () => {
 
       if (data.user) {
         currentUser = data.user;
-        await ensureOwnStreakRow();
-        await ensureStreakViewRow();
         await ensurePushInfoRow();
         await loadUnreadNotificationCount();
         refreshBellIcon();
@@ -1147,17 +1224,6 @@ forgotPw.onclick = () => {
         if (btnBar)   btnBar.style.display = "flex";
       }
     })();
-    
-
-    async function ensureOwnStreakRow() {
-      if (!currentUser) return;
-
-      await supabaseClient
-        .from("streak_view")
-        .insert({ user_id: currentUser.id })
-        .select()
-        .maybeSingle();
-    }
     
 
     function setupRealtime() {
@@ -1289,26 +1355,6 @@ forgotPw.onclick = () => {
       if (error) console.error("push_info upsert error:", error);
     }
     
-    async function ensureStreakViewRow() {
-      if (!currentUser) return;
-
-      const { error } = await supabaseClient
-        .from("streak_view")
-        .upsert(
-          {
-            user_id: currentUser.id,
-            current_streak: 0,
-            longest_streak: 0,
-            showMedal: 0
-          },
-          { onConflict: "user_id" }
-        );
-
-      if (error) {
-        console.error("ensureStreakViewRow error:", error);
-      }
-    }
-
     async function loadUnreadNotificationCount() {
       if (!currentUser) return 0;
       const uid = currentUser.id;
@@ -1782,7 +1828,11 @@ forgotPw.onclick = () => {
             .update({ progress })
             .eq("id", habitId);
 
-          if (error) console.error("decrement progress error:", error);
+          if (error) {
+            console.error("decrement progress error:", error);
+          } else {
+            syncHabitDayForProgress(habitId, progress);
+          }
         });
       }
 
@@ -1973,6 +2023,7 @@ forgotPw.onclick = () => {
 
           // Persist both subtask states and main progress
           saveHabit(cardEl);
+          syncHabitDayForProgress(cardEl.dataset.habitId, progress);
         } catch (err) {
           console.error('subtask progress sync error', err);
         }
@@ -2395,6 +2446,8 @@ forgotPw.onclick = () => {
               counter.style.display = "none";
             }
           }
+
+          syncHabitDayForProgress(habitId, 0);
         }
         lastTap = now;
       });
@@ -2402,7 +2455,7 @@ forgotPw.onclick = () => {
 
 
     
-    function proceedHabitToggle(card) {
+    async function proceedHabitToggle(card) {
       const input   = card.querySelector(".card-input");
       const counter = card.querySelector(".counter");
 
@@ -2486,7 +2539,8 @@ forgotPw.onclick = () => {
         lucide.createIcons();
       }
 
-      saveHabit(card);
+      await saveHabit(card);
+      syncHabitDayForProgress(card.dataset.habitId, progress);
     }
     
     async function geocodeAddress(addr) {
@@ -2634,15 +2688,222 @@ forgotPw.onclick = () => {
     return data || [];
   }
   
-  function barsHtml(habits) {
+  let statsCalendarOffset = 0;
+  let statsCalendarData = {};
+  let statsCalendarHabits = {
+    myHabits: [],
+    otherHabits: [],
+    otherUserId: null
+  };
+
+  async function checkForAppUpdate() {
+    try {
+      if (!window.location || window.location.protocol === "file:") return;
+      const { data, error } = await supabaseClient
+        .from("version")
+        .select("version_number")
+        .order("version_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error || !data) return;
+
+      const latest = parseFloat(data.version_number);
+      if (!Number.isFinite(latest)) return;
+      if (latest <= APP_VERSION) return;
+
+      const url = new URL(window.location.href);
+      const paramVer = parseFloat(url.searchParams.get("v"));
+      if (Number.isFinite(paramVer) && paramVer === latest) return;
+
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      }
+
+      localStorage.setItem("update_notice_version", String(latest));
+      url.searchParams.set("v", String(latest));
+      window.location.replace(url.toString());
+    } catch (e) {
+      console.error("checkForAppUpdate error:", e);
+    }
+  }
+
+  function getLocalDateString(dateObj = new Date()) {
+    const tzOffset = dateObj.getTimezoneOffset() * 60000;
+    return new Date(dateObj - tzOffset).toISOString().slice(0, 10);
+  }
+
+  function getWeekdayName(dateObj = new Date()) {
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    return days[dateObj.getDay()];
+  }
+
+  async function syncHabitDayForProgress(habitId, progress) {
+    if (!habitId) return;
+    const day = getLocalDateString();
+    const weekday = getWeekdayName();
+
+    if (progress > 0) {
+      const { error } = await supabaseClient
+        .from("habit_days")
+        .upsert(
+          { id: crypto.randomUUID(), habit_id: habitId, date: day, day, weekday, done: true },
+          { onConflict: "habit_id,date", ignoreDuplicates: true }
+        );
+      if (error) console.error("habit_days upsert error:", error);
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("habit_days")
+      .delete()
+      .eq("habit_id", habitId)
+      .eq("date", day);
+
+    if (error) console.error("habit_days delete error:", error);
+  }
+
+  function getGermanMonthName(dateObj) {
+    const months = [
+      "Januar", "Februar", "März", "April", "Mai", "Juni",
+      "Juli", "August", "September", "Oktober", "November", "Dezember"
+    ];
+    return months[dateObj.getMonth()];
+  }
+
+  function getStatsMonthInfo() {
+    const base = new Date();
+    const target = new Date(base.getFullYear(), base.getMonth() + statsCalendarOffset, 1);
+    const year = target.getFullYear();
+    const month = target.getMonth();
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    return {
+      target,
+      year,
+      month,
+      monthName: getGermanMonthName(target),
+      start,
+      end,
+      daysInMonth
+    };
+  }
+
+  function parseDayNumber(dateStr) {
+    if (!dateStr) return null;
+    const parts = String(dateStr).split("-");
+    if (parts.length < 3) return null;
+    return parseInt(parts[2], 10);
+  }
+
+  async function loadHabitDaysForMonth(habitIds) {
+    if (!habitIds || habitIds.length === 0) return {};
+    const info = getStatsMonthInfo();
+    const startStr = getLocalDateString(info.start);
+    const endStr = getLocalDateString(info.end);
+
+    const { data, error } = await supabaseClient
+      .from("habit_days")
+      .select("habit_id, date")
+      .in("habit_id", habitIds)
+      .gte("date", startStr)
+      .lt("date", endStr);
+
+    if (error) {
+      console.error("loadHabitDaysForMonth error:", error);
+      return {};
+    }
+
+    const map = {};
+    (data || []).forEach(row => {
+      const habitId = row.habit_id;
+      const dayNum = parseDayNumber(row.date);
+      if (!habitId || !dayNum) return;
+      if (!map[habitId]) map[habitId] = new Set();
+      map[habitId].add(dayNum);
+    });
+    return map;
+  }
+
+  async function refreshStatsCalendarData() {
+    const myIds = (statsCalendarHabits.myHabits || []).map(h => h.id).filter(Boolean);
+    const otherIds = (statsCalendarHabits.otherHabits || []).map(h => h.id).filter(Boolean);
+    const [myMap, otherMap] = await Promise.all([
+      loadHabitDaysForMonth(myIds),
+      loadHabitDaysForMonth(otherIds)
+    ]);
+    statsCalendarData = { ...myMap, ...otherMap };
+    renderStatCalendars();
+  }
+
+  function renderStatCalendars() {
+    const info = getStatsMonthInfo();
+    const monthName = info.monthName;
+    const year = info.year;
+    const daysInMonth = info.daysInMonth;
+    const calendars = statsViewEl.querySelectorAll(".stat-calendar");
+    calendars.forEach(cal => {
+      const habitId = cal.dataset.habitId;
+      const color = cal.dataset.color || "#e5e7eb";
+      const days = habitId ? statsCalendarData[habitId] : null;
+      const headerEl = cal.querySelector(".stat-calendar-header");
+      const gridEl = cal.querySelector(".stat-calendar-grid");
+
+      if (headerEl) headerEl.textContent = `${monthName} ${year}`;
+      if (gridEl) {
+        const daySet = days instanceof Set ? days : new Set();
+        let html = "";
+        for (let d = 1; d <= daysInMonth; d++) {
+          const isActive = daySet.has(d);
+          const bg = isActive ? color : "var(--c-card)";
+          const cls = isActive ? "stat-day" : "stat-day inactive";
+          html += `<div class="${cls}" style="background:${bg};">${d}</div>`;
+        }
+        gridEl.innerHTML = html;
+      }
+    });
+  }
+
+  function setupStatCalendarInteractions() {
+    const bars = statsViewEl.querySelectorAll(".stat-bar.is-clickable");
+    bars.forEach(bar => {
+      bar.addEventListener("click", () => {
+        const parent = bar.closest(".stat-item");
+        const calendar = parent ? parent.querySelector(".stat-calendar") : null;
+        if (!calendar) return;
+
+        const isOpen = calendar.classList.contains("is-open");
+        statsViewEl.querySelectorAll(".stat-calendar.is-open").forEach(openCal => {
+          openCal.classList.remove("is-open");
+        });
+        if (!isOpen) calendar.classList.add("is-open");
+      });
+    });
+
+    const navButtons = statsViewEl.querySelectorAll(".stat-cal-nav");
+    navButtons.forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const dir = parseInt(btn.dataset.dir, 10) || 0;
+        statsCalendarOffset += dir;
+        refreshStatsCalendarData();
+      });
+    });
+  }
+
+  function barsHtml(habits, keyPrefix) {
     let html = "";
     for (let i = 0; i < 3; i++) {
       const h = habits[i];
 
       if (!h) {
       html += `
-        <div class="stat-bar" style="position:relative;">
-          <div class="stat-fill" style="width:0%"></div>
+        <div class="stat-item">
+          <div class="stat-bar" style="position:relative;">
+            <div class="stat-fill" style="width:0%"></div>
+          </div>
         </div>`;
         continue;
       }
@@ -2670,7 +2931,8 @@ forgotPw.onclick = () => {
       }
 
       html += `
-        <div class="stat-bar" style="position:relative;">
+        <div class="stat-item">
+        <div class="stat-bar is-clickable" data-habit-id="${h.id}" data-color="${color}" style="position:relative;">
 
           <!-- Fortschrittsbalken -->
           <div style="
@@ -2700,6 +2962,15 @@ forgotPw.onclick = () => {
           </div>
 
         </div>
+        <div class="stat-calendar" data-habit-id="${h.id}" data-color="${color}">
+          <div class="stat-calendar-header-row">
+            <button class="stat-cal-nav" data-dir="-1" aria-label="Vorheriger Monat">‹</button>
+            <div class="stat-calendar-header"></div>
+            <button class="stat-cal-nav" data-dir="1" aria-label="Nächster Monat">›</button>
+          </div>
+          <div class="stat-calendar-grid"></div>
+        </div>
+        </div>
       `;
     }
 
@@ -2725,6 +2996,16 @@ forgotPw.onclick = () => {
     
     async function renderNotifications() {
       const rows = await loadNotifications(30);
+      const updateNoticeVersion = localStorage.getItem("update_notice_version");
+      const updateNoticeHtml = updateNoticeVersion
+        ? `
+          <div class="notification-item">
+            <div style="font-weight:800; margin-bottom:4px;">Update installiert</div>
+            <div style="font-weight:600;">Version ${updateNoticeVersion} wurde installiert.</div>
+          </div>
+        `
+        : "";
+      if (updateNoticeVersion) localStorage.removeItem("update_notice_version");
 
       const itemsHtml = (rows.length > 0)
         ? rows.map(r => {
@@ -2751,7 +3032,8 @@ forgotPw.onclick = () => {
         `;
 
       notificationsViewEl.innerHTML = `
-        <div class="notification-title">Benachrichtigungen</div>
+        <div class="notification-title">Reminders</div>
+        ${updateNoticeHtml}
         ${itemsHtml}
       `;
     }
@@ -2818,7 +3100,7 @@ forgotPw.onclick = () => {
         </div>
       `;
 
-      html += barsHtml(myHabits);
+      html += barsHtml(myHabits, "my");
 
       // === Optional: anderer User ===
       if (otherUserData) {
@@ -2858,7 +3140,7 @@ forgotPw.onclick = () => {
           </div>
         `;
 
-        html += barsHtml(otherHabits);
+        html += barsHtml(otherHabits, "other");
 
         // Two buttons side-by-side with equal width
         html += `
@@ -2875,6 +3157,13 @@ forgotPw.onclick = () => {
 
       statsViewEl.innerHTML = html;
       lucide.createIcons({ scope: statsViewEl });
+      statsCalendarHabits = {
+        myHabits: myHabits || [],
+        otherHabits: otherHabits || [],
+        otherUserId: otherUserData ? otherUserData.id : null
+      };
+      setupStatCalendarInteractions();
+      refreshStatsCalendarData();
       // --- NAME-EDITIERUNG AKTIVIEREN ---
       const editableName = document.getElementById("editableName");
 
@@ -3525,6 +3814,7 @@ async function processQRFlow(qrId) {
       .eq("id", habit.id);
 
     if (updErr) return;
+    syncHabitDayForProgress(habit.id, newProgress, currentUser.id);
 
     // Update last scanned
     const today = new Date().toISOString().substring(0, 10);
