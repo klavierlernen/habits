@@ -2900,6 +2900,7 @@ forgotPw.onclick = () => {
     async function proceedHabitToggle(card) {
       const input   = card.querySelector(".card-input");
       const counter = card.querySelector(".counter");
+      const flipBtn = card.querySelector(".card-flip-btn");
 
       if (!input.textContent.trim()) return;
 
