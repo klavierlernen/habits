@@ -34,14 +34,7 @@
         --c-bg: #ffffff;
         --c-text: #000000;
         --c-card: #e4e4e4;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --c-bg: #000000;
-          --c-text: #ffffff;
-          --c-card: #1a1a1a;
-        }
+        color-scheme: light;
       }
 
     * {
@@ -153,6 +146,162 @@
       font-weight:600;
       text-align:center;
       color: var(--c-text);
+    }
+
+    /* Intro progress screen */
+    #introProgressScreen {
+      position: fixed;
+      inset: 0;
+      background: var(--c-bg);
+      color: var(--c-text);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 20px 34px;
+      text-align: center;
+      z-index: 25;
+      opacity: 0;
+    }
+
+    #introProgressScreen h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    #introProgressLayout {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    #introProgressMessage {
+      display: block;
+      max-width: 420px;
+      text-align: justify;
+      text-justify: inter-word;
+      line-height: 1.4;
+    }
+
+    #introProgressChart {
+      width: min(260px, 70vw);
+      aspect-ratio: 1 / 1;
+      position: relative;
+      margin: 18px 0 16px;
+    }
+
+    #introProgressChart svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #introStreakCenter {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #introStreakValue {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .intro-ring-track {
+      fill: none;
+      stroke: var(--c-card);
+      stroke-width: 12;
+    }
+
+    .intro-ring {
+      fill: none;
+      stroke-width: 12;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    #introProgressMessage {
+      margin-top: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--c-text);
+    }
+
+    .intro-compare {
+      margin-top: 8px;
+    }
+
+    .intro-compare-highlight {
+      position: relative;
+      display: inline-block;
+      padding-bottom: 2px;
+    }
+
+    .intro-compare-underline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+
+    #introContinueBtn {
+      margin-top: 24px;
+      padding: 14px 26px;
+      border-radius: 20px;
+      border: none;
+      background: var(--c-text);
+      color: var(--c-bg);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #introConfetti {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    @media (min-width: 768px) {
+      #introProgressLayout {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        text-align: left;
+      }
+
+      #introProgressMessage {
+        max-width: 320px;
+        text-align: justify;
+        text-justify: inter-word;
+      }
+
+      #introProgressChart {
+        margin: 0;
+        width: 240px;
+      }
+    }
+
+    .intro-confetti-piece {
+      position: absolute;
+      width: 8px;
+      height: 14px;
+      opacity: 0.9;
     }
 
     /* rolling-text styles removed */
@@ -1129,6 +1278,30 @@
   <div id="loginError"></div>
 </div>
 
+<!-- INTRO PROGRESS SCREEN -->
+<div id="introProgressScreen" aria-hidden="true">
+  <div id="introConfetti"></div>
+  <h2 id="introHeadline">Dein Fortschritt</h2>
+  <div id="introProgressLayout">
+    <div id="introProgressChart" aria-hidden="true">
+      <svg viewBox="0 0 200 200" role="img" aria-label="Fortschrittsringe">
+        <circle class="intro-ring-track ring-1" cx="100" cy="100" r="70"></circle>
+        <circle class="intro-ring-track ring-2" cx="100" cy="100" r="52"></circle>
+        <circle class="intro-ring-track ring-3" cx="100" cy="100" r="34"></circle>
+
+        <circle class="intro-ring ring-1" cx="100" cy="100" r="70"></circle>
+        <circle class="intro-ring ring-2" cx="100" cy="100" r="52"></circle>
+        <circle class="intro-ring ring-3" cx="100" cy="100" r="34"></circle>
+      </svg>
+      <div id="introStreakCenter">
+        <div id="introStreakValue">0</div>
+      </div>
+    </div>
+    <div id="introProgressMessage">Du hast es bald geschafft! Bleib dran.</div>
+  </div>
+  <button id="introContinueBtn">Weiter</button>
+</div>
+
 <!-- MAIN HABIT PAGE (3 Klötze) -->
 <div id="appPage">
     <!-- WEEKLY MEDAL SCREEN -->
@@ -1262,6 +1435,13 @@
     const loginForm     = document.getElementById("loginForm");
     const loginError    = document.getElementById("loginError");
     const appPage       = document.getElementById("appPage");
+    const introProgressScreen = document.getElementById("introProgressScreen");
+    const introHeadline = document.getElementById("introHeadline");
+    const introProgressMessage = document.getElementById("introProgressMessage");
+    const introContinueBtn = document.getElementById("introContinueBtn");
+    const introConfetti = document.getElementById("introConfetti");
+    const introRings = Array.from(document.querySelectorAll(".intro-ring"));
+    const introStreakValue = document.getElementById("introStreakValue");
     const btnLogin      = document.getElementById("btnLogin");
     const btnRegister   = document.getElementById("btnRegister");
     const loginOkBtn    = document.getElementById("loginOkBtn");
@@ -1320,6 +1500,7 @@
     let authMode    = "login";
     let statsOpen   = false;
     let otherUser   = null;
+    let introFlowDone = false;
 
     // unread badge comes from DB
     let unreadNotificationCount = 0;
@@ -1592,6 +1773,12 @@
       });
     }
 
+    if (introContinueBtn) {
+      introContinueBtn.addEventListener("click", async () => {
+        await proceedAfterIntro();
+      });
+    }
+
 
     function darken(hex, f=0.55) {
       let r = parseInt(hex.slice(1,3),16)*f|0;
@@ -1610,6 +1797,186 @@
         ease: "sine.inOut"
       });
     }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function getIntroRingData() {
+      const fallbackColors = ["#ff2d55", "#34c759", "#0a84ff"];
+      const data = [];
+      for (let i = 0; i < 3; i++) {
+        const habit = habits[i];
+        const progress = habit ? parseInt(habit.progress) || 0 : 0;
+        const rawGoal = habit ? habit.goal : 0;
+        const goal = (rawGoal === null || rawGoal === undefined) ? 0 : parseInt(rawGoal) || 0;
+        const color = habit?.color || fallbackColors[i];
+        data.push({ progress, goal, color });
+      }
+      return data;
+    }
+
+    function animateIntroRings(ringData) {
+      if (!introRings.length) return;
+      introRings.forEach((ring, idx) => {
+        const { progress, goal, color } = ringData[idx] || {};
+        const pct = goal > 0 ? Math.min(progress / goal, 1) : 0;
+        const r = ring.r.baseVal.value;
+        const circumference = 2 * Math.PI * r;
+        ring.style.stroke = color || "#ffffff";
+        ring.style.strokeDasharray = `${circumference}`;
+        gsap.fromTo(
+          ring,
+          { strokeDashoffset: circumference },
+          {
+            strokeDashoffset: circumference * (1 - pct),
+            duration: 1.2,
+            ease: "power2.out",
+            delay: 0.15 + idx * 0.12
+          }
+        );
+      });
+    }
+
+    function launchIntroConfetti() {
+      if (!introConfetti || !introProgressScreen) return;
+      introConfetti.innerHTML = "";
+      const colors = ["#ff2d55", "#34c759", "#0a84ff", "#ffd60a", "#ff9f0a"];
+      const rect = introProgressScreen.getBoundingClientRect();
+      const pieces = 70;
+      for (let i = 0; i < pieces; i++) {
+        const piece = document.createElement("div");
+        piece.className = "intro-confetti-piece";
+        piece.style.background = colors[i % colors.length];
+        piece.style.left = `${Math.random() * rect.width}px`;
+        piece.style.top = `${-20 - Math.random() * 40}px`;
+        introConfetti.appendChild(piece);
+
+        const drift = (Math.random() - 0.5) * 120;
+        gsap.to(piece, {
+          y: rect.height + 60,
+          x: drift,
+          rotation: Math.random() * 360,
+          duration: 1.8 + Math.random() * 1.2,
+          ease: "power1.in",
+          delay: Math.random() * 0.35,
+          onComplete: () => piece.remove()
+        });
+      }
+    }
+
+    async function showIntroProgressScreen() {
+      if (!introProgressScreen) {
+        showAppAfterDataLoaded();
+        return;
+      }
+
+      introFlowDone = false;
+      const ringData = getIntroRingData();
+      const allComplete = ringData.every(item => item.goal > 0 && item.progress >= item.goal);
+      const streakValue = currentUser ? await loadStreakForUser(currentUser.id) : 0;
+      const fallbackName = currentUser?.email ? currentUser.email.split("@")[0] : "da";
+      const displayName = currentUser?.user_metadata?.display_name || fallbackName;
+      const habitIds = habits.map(h => h.id).filter(Boolean);
+      const monthlyCounts = await loadHabitDayCountsForMonth(habitIds);
+      let compareLine = "";
+      let compareShouldUnderline = false;
+
+      if (introStreakValue) {
+        introStreakValue.textContent = `${streakValue}`;
+      }
+
+      if (introHeadline) {
+        introHeadline.textContent = `Hallo ${displayName}, lass uns kurz auf deinen Fortschritt schauen`;
+      }
+
+      try {
+        let otherUserData = otherUser;
+        if (!otherUserData) {
+          otherUserData = await loadOtherUser();
+          otherUser = otherUserData;
+        }
+
+        if (otherUserData) {
+          const otherHabits = await loadHabitsForUser(otherUserData.id);
+          const myTotal = ringData.reduce((sum, item) => {
+            const goal = item.goal || 0;
+            const pct = goal > 0 ? Math.min(item.progress / goal, 1) : 0;
+            return sum + pct;
+          }, 0);
+          const otherTotal = otherHabits.reduce((sum, habit) => {
+            const progress = parseInt(habit.progress) || 0;
+            const rawGoal = habit.goal;
+            const goal = (rawGoal === null || rawGoal === undefined) ? 0 : parseInt(rawGoal) || 0;
+            const pct = goal > 0 ? Math.min(progress / goal, 1) : 0;
+            return sum + pct;
+          }, 0);
+          let compareWord = "gleich produktiv";
+          if (myTotal > otherTotal) {
+            compareWord = "produktiver";
+          } else if (myTotal < otherTotal) {
+            compareWord = "weniger produktiv";
+          }
+          const otherName = escapeHtml(otherUserData.display_name || "User2");
+          compareShouldUnderline = compareWord === "produktiver" || compareWord === "weniger produktiv";
+          const compareWordHtml = compareShouldUnderline
+            ? `<span class="intro-compare-highlight">${compareWord}<span class="intro-compare-underline"></span></span>`
+            : compareWord;
+          compareLine = `Du bist gerade ${compareWordHtml} als ${otherName}.`;
+        } else {
+          compareLine = "Du bist gerade produktiv im Vergleich zu User2.";
+        }
+      } catch (err) {
+        console.error("intro comparison error:", err);
+      }
+
+      if (introProgressMessage) {
+        const parts = habits.map(habit => {
+          const title = habit?.title ? escapeHtml(habit.title) : "Habit";
+          const count = monthlyCounts[habit.id] || 0;
+          const color = habit?.color || "var(--c-text)";
+          return `<span style="color:${color}">${count}x ${title}</span>`;
+        });
+        const compareHtml = compareLine ? `<div class="intro-compare">${compareLine}</div>` : "";
+        introProgressMessage.innerHTML = `Du hast diesen Monat ${parts.join(", ")} erledigt. Man merkt schon fast Konsistenz.${compareHtml}`;
+        if (compareShouldUnderline) {
+          const underlineEl = introProgressMessage.querySelector(".intro-compare-underline");
+          if (underlineEl) {
+            gsap.fromTo(underlineEl, { scaleX: 0 }, {
+              scaleX: 1,
+              duration: 0.6,
+              ease: "power2.out",
+              delay: 0.5
+            });
+          }
+        }
+      }
+
+      introProgressScreen.style.display = "flex";
+      introProgressScreen.setAttribute("aria-hidden", "false");
+      gsap.fromTo(introProgressScreen, { opacity: 0 }, {
+        opacity: 1,
+        duration: 0.4,
+        ease: "sine.inOut"
+      });
+
+      if (loginScreen && loginScreen.style.display !== "none") {
+        gsap.to(loginScreen, {
+          opacity: 0,
+          duration: 0.35,
+          ease: "sine.inOut",
+          onComplete: () => { loginScreen.style.display = "none"; }
+        });
+      }
+
+      animateIntroRings(ringData);
+      if (allComplete) launchIntroConfetti();
+    }
     
 
     function showAppAfterDataLoaded() {
@@ -1620,12 +1987,38 @@
         ease:"sine.inOut"
       });
 
-      gsap.to(loginScreen, {
-        opacity:0,
-        duration:0.45,
-        ease:"sine.inOut",
-        onComplete: () => { loginScreen.style.display = "none"; }
-      });
+      if (introProgressScreen) {
+        gsap.to(introProgressScreen, {
+          opacity: 0,
+          duration: 0.3,
+          ease: "sine.inOut",
+          onComplete: () => {
+            introProgressScreen.style.display = "none";
+            introProgressScreen.setAttribute("aria-hidden", "true");
+            introProgressScreen.style.opacity = "";
+          }
+        });
+      }
+
+      if (loginScreen) {
+        gsap.to(loginScreen, {
+          opacity:0,
+          duration:0.45,
+          ease:"sine.inOut",
+          onComplete: () => { loginScreen.style.display = "none"; }
+        });
+      }
+    }
+
+    async function proceedAfterIntro() {
+      if (introFlowDone) return;
+      introFlowDone = true;
+      showAppAfterDataLoaded();
+      await ensureDesktopStats();
+      await ensureAvatarSelected();
+      await checkMedalScreen();
+      const qr = getQRParam();
+      if (qr) await processQRFlow(qr);
     }
 
     function updateDesktopLayoutHeights() {
@@ -1841,15 +2234,11 @@ forgotPw.onclick = () => {
       setupRealtime();
       setupShakeDetection();
 
+      await checkStreakResetGate();
       await safeLoadHabits();
       const subline = document.getElementById("loginSubline");
       if (subline) subline.style.display = "none";
-      showAppAfterDataLoaded();
-      await ensureDesktopStats();
-      await ensureAvatarSelected();
-      await checkMedalScreen();
-      const qr = getQRParam();
-      if (qr) await processQRFlow(qr);
+      await showIntroProgressScreen();
     };
 
     // === AUTOLOGIN + QR FLOW ===
@@ -1866,13 +2255,9 @@ forgotPw.onclick = () => {
         setupRealtime();
         setupShakeDetection();
 
+        await checkStreakResetGate();
         await safeLoadHabits();
-        showAppAfterDataLoaded();
-        await ensureDesktopStats();
-        await ensureAvatarSelected();
-        await checkMedalScreen();
-        const qr = getQRParam();
-        if (qr) await processQRFlow(qr);
+        await showIntroProgressScreen();
       } else {
         // Kein Autologin möglich → Login anbieten
         const headline = document.getElementById("loginHeadline");
@@ -3491,6 +3876,99 @@ forgotPw.onclick = () => {
     return days[dateObj.getDay()];
   }
 
+  function getWeekRange(dateObj = new Date()) {
+    const date = new Date(dateObj);
+    const day = date.getDay();
+    const diffToMonday = (day + 6) % 7;
+    date.setDate(date.getDate() - diffToMonday);
+    date.setHours(0, 0, 0, 0);
+    const start = new Date(date);
+    const end = new Date(date);
+    end.setDate(end.getDate() + 7);
+    return { start, end };
+  }
+
+  async function performStreakResetForUser(uid) {
+    const habits = await loadHabitsForUser(uid);
+
+    const allFull =
+      habits.length === 3 &&
+      habits.every(h => {
+        if (h.qr_enabled === true || h.qr_enabled === "true") return false;
+        const goal = h.goal || 0;
+        return goal > 0 && h.progress >= goal;
+      });
+
+    const { data: streakRow, error: readErr } = await supabaseClient
+      .from("streak_view")
+      .select("current_streak, longest_streak")
+      .eq("user_id", uid)
+      .single();
+
+    if (readErr) {
+      console.error("streak read error", readErr);
+      return;
+    }
+
+    const current = streakRow?.current_streak ?? 0;
+    const longest = streakRow?.longest_streak ?? 0;
+
+    const nextCurrent = allFull ? current + 1 : 0;
+    const nextLongest = Math.max(longest, nextCurrent);
+
+    await supabaseClient
+      .from("streak_view")
+      .upsert(
+        {
+          user_id: uid,
+          current_streak: nextCurrent,
+          longest_streak: nextLongest,
+          last_update: new Date().toISOString()
+        },
+        { onConflict: "user_id" }
+      );
+
+    await supabaseClient.rpc(
+      "reset_progress_for_users",
+      { uids: [uid] }
+    );
+  }
+
+  async function checkStreakResetGate() {
+    if (!currentUser || !currentUser.id) return;
+    const { start, end } = getWeekRange();
+    const startStr = getLocalDateString(start);
+    const endStr = getLocalDateString(end);
+
+    const { data, error } = await supabaseClient
+      .from("CheckStreakReset")
+      .select("id")
+      .eq("user_id", currentUser.id)
+      .gte("date", startStr)
+      .lt("date", endStr)
+      .limit(1);
+
+    if (error) {
+      console.error("checkStreakResetGate read error:", error);
+      return;
+    }
+
+    if (data && data.length) return;
+
+    await performStreakResetForUser(currentUser.id);
+
+    const { error: insertErr } = await supabaseClient
+      .from("CheckStreakReset")
+      .insert({
+        user_id: currentUser.id,
+        date: getLocalDateString()
+      });
+
+    if (insertErr) {
+      console.error("checkStreakResetGate insert error:", insertErr);
+    }
+  }
+
   async function syncHabitDayForProgress(habitId, progress) {
     if (!habitId) return;
     const day = getLocalDateString();
@@ -3522,6 +4000,15 @@ forgotPw.onclick = () => {
       "Juli", "August", "September", "Oktober", "November", "Dezember"
     ];
     return months[dateObj.getMonth()];
+  }
+
+  function getMonthRange(dateObj = new Date()) {
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth();
+    return {
+      start: new Date(year, month, 1),
+      end: new Date(year, month + 1, 1)
+    };
   }
 
   function getStatsMonthInfo() {
@@ -3577,6 +4064,33 @@ forgotPw.onclick = () => {
       map[habitId].add(dayNum);
     });
     return map;
+  }
+
+  async function loadHabitDayCountsForMonth(habitIds, dateObj = new Date()) {
+    if (!habitIds || habitIds.length === 0) return {};
+    const range = getMonthRange(dateObj);
+    const startStr = getLocalDateString(range.start);
+    const endStr = getLocalDateString(range.end);
+
+    const { data, error } = await supabaseClient
+      .from("habit_days")
+      .select("habit_id")
+      .in("habit_id", habitIds)
+      .gte("date", startStr)
+      .lt("date", endStr);
+
+    if (error) {
+      console.error("loadHabitDayCountsForMonth error:", error);
+      return {};
+    }
+
+    const counts = {};
+    (data || []).forEach(row => {
+      const habitId = row.habit_id;
+      if (!habitId) return;
+      counts[habitId] = (counts[habitId] || 0) + 1;
+    });
+    return counts;
   }
 
   async function refreshStatsCalendarData() {
@@ -4031,50 +4545,7 @@ forgotPw.onclick = () => {
             : [currentUser.id];
 
           for (const uid of users) {
-            const habits = await loadHabitsForUser(uid);
-
-            const allFull =
-              habits.length === 3 &&
-              habits.every(h => {
-                if (h.qr_enabled === true || h.qr_enabled === "true") return false;
-                const goal = h.goal || 0;
-                return goal > 0 && h.progress >= goal;
-              });
-
-            const { data: streakRow, error: readErr } = await supabaseClient
-              .from("streak_view")
-              .select("current_streak, longest_streak")
-              .eq("user_id", uid)
-              .single();
-
-            if (readErr) {
-              console.error("streak read error", readErr);
-              continue;
-            }
-
-            const current = streakRow?.current_streak ?? 0;
-            const longest = streakRow?.longest_streak ?? 0;
-
-            const nextCurrent = allFull ? current + 1 : 0;
-            const nextLongest = Math.max(longest, nextCurrent);
-
-            await supabaseClient
-              .from("streak_view")
-              .upsert(
-                {
-                  user_id: uid,
-                  current_streak: nextCurrent,
-                  longest_streak: nextLongest,
-                  last_update: new Date().toISOString()
-                },
-                { onConflict: "user_id" }
-              );
-
-            // ➜ Progress IMMER zurücksetzen (RPC)
-            await supabaseClient.rpc(
-              "reset_progress_for_users",
-              { uids: [uid] }
-            );
+            await performStreakResetForUser(uid);
           }
 
           // --- Create notification for the other user ---
@@ -4135,49 +4606,7 @@ forgotPw.onclick = () => {
             : [currentUser.id];
 
           for (const uid of users) {
-            const habits = await loadHabitsForUser(uid);
-
-            const allFull =
-              habits.length === 3 &&
-              habits.every(h => {
-                if (h.qr_enabled === true || h.qr_enabled === "true") return false;
-                const goal = h.goal || 0;
-                return goal > 0 && h.progress >= goal;
-              });
-
-            const { data: streakRow, error: readErr } = await supabaseClient
-              .from("streak_view")
-              .select("current_streak, longest_streak")
-              .eq("user_id", uid)
-              .single();
-
-            if (readErr) {
-              console.error("streak read error", readErr);
-              continue;
-            }
-
-            const current = streakRow?.current_streak ?? 0;
-            const longest = streakRow?.longest_streak ?? 0;
-
-            const nextCurrent = allFull ? current + 1 : 0;
-            const nextLongest = Math.max(longest, nextCurrent);
-
-            await supabaseClient
-              .from("streak_view")
-              .upsert(
-                {
-                  user_id: uid,
-                  current_streak: nextCurrent,
-                  longest_streak: nextLongest,
-                  last_update: new Date().toISOString()
-                },
-                { onConflict: "user_id" }
-              );
-
-            await supabaseClient.rpc(
-              "reset_progress_for_users",
-              { uids: [uid] }
-            );
+            await performStreakResetForUser(uid);
           }
 
           if (otherUser && otherUser.id && otherUser.id !== currentUser.id) {
