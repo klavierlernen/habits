@@ -48,7 +48,7 @@
     body {
       margin:0;
       padding:0;
-      font-family: "Poppins", sans-serif;
+      font-family: "SF Pro", "SF Pro Text", "SF Pro Display", -apple-system, "Helvetica Neue", "Segoe UI", "Poppins", sans-serif;
       background: var(--c-bg);
         color: var(--c-text);
       height:100svh;
@@ -143,7 +143,7 @@
     #loginHeadline {
       margin-top:28px;
       font-size:26px;
-      font-weight:600;
+      font-weight:700;
       text-align:center;
       color: var(--c-text);
     }
@@ -166,7 +166,7 @@
 
     #introProgressScreen h2 {
       font-size: 24px;
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 12px;
     }
 
@@ -234,6 +234,14 @@
       font-size: 16px;
       font-weight: 500;
       color: var(--c-text);
+    }
+
+    .has-sf-pro #introHeadline {
+      font-size: 32px;
+    }
+
+    .has-sf-pro #introProgressMessage {
+      font-weight: 600;
     }
 
     .intro-compare {
@@ -659,53 +667,6 @@
         height:22px;
       }
 
-      .desktop-commit-btn {
-        height:44px;
-        min-width:44px;
-        padding:0 12px;
-        border-radius:12px;
-        border:none;
-        background:transparent;
-        color:var(--c-text);
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        cursor:pointer;
-        position:relative;
-        overflow:hidden;
-      }
-
-      .desktop-commit-btn .stats-reset-progress {
-        background: rgba(29,78,216,0.25);
-      }
-
-      .desktop-commit-btn .radial-progress {
-        position:absolute;
-        left:50%;
-        top:50%;
-        width:180%;
-        height:180%;
-        border-radius:999px;
-        transform:translate(-50%, -50%) scale(0);
-        transform-origin:center;
-      }
-
-      .desktop-commit-btn.is-armed {
-        color:#1d4ed8;
-      }
-
-      .desktop-commit-hint {
-        font-size:0.85rem;
-        font-weight:600;
-        color:#6b7280;
-        opacity:0;
-        transition:opacity 0.2s ease;
-        white-space:nowrap;
-      }
-
-      .desktop-commit-hint.is-visible {
-        opacity:1;
-      }
 
       .desktop-reminder-popover {
         position:absolute;
@@ -744,9 +705,6 @@
         white-space:nowrap;
       }
 
-      .stats-reset-wrap {
-        display:none;
-      }
 
       .page {
         padding:0;
@@ -853,7 +811,7 @@
       z-index:50;
     }
 
-    .stats-name { font-size:2rem; font-weight:700; margin-bottom:20px; }
+    .stats-name { font-size:2rem; font-weight:800; margin-bottom:20px; }
     .stat-item { margin-bottom:18px; }
     .stat-bar { width:100%; height:48px; background: var(--c-card); border-radius:16px; overflow:hidden; }
     .stat-bar.is-clickable { cursor:pointer; }
@@ -947,67 +905,6 @@
       color:var(--c-text);
     }
 
-    .stats-reset-wrap {
-      display:flex;
-      justify-content:center;
-      margin-top:36px; /* mehr Abstand zur Progressbar */
-      margin-bottom:12px;
-    }
-
-    .stats-reset-btn {
-      min-width:160px;        /* breit genug für Hinweistext in einer Zeile */
-      height:48px;
-      padding:0 16px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border-radius:14px;
-      border:2px solid #ef4444;
-      background:transparent;
-      color:#ef4444;
-      cursor:pointer;
-      position:relative;
-      overflow:hidden;
-      font-size:14px;
-      white-space:nowrap;     /* Text bleibt einzeilig */
-    }
-
-    /* Blue variant for streak commit */
-    .stats-reset-btn.blue {
-      border: 2px solid #1d4ed8; /* dark blue */
-      color: #1d4ed8;
-    }
-
-    .stats-reset-btn.blue .stats-reset-progress {
-      background: rgba(29,78,216,0.25);
-    }
-
-    .stats-reset-btn.hint {
-      font-size:14px;
-      font-weight:600;
-      padding:0 16px;
-      text-align:center;
-    }
-
-    .stats-reset-progress {
-      position:absolute;
-      bottom:0;
-      left:0;
-      height:100%;
-      width:0%;
-      background:rgba(239,68,68,0.25);
-      z-index:0;
-    }
-
-    .stats-reset-btn-content {
-      position:relative;
-      z-index:1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      line-height:1.2;
-    }
 
     .stats-name-row {
       display:flex;
@@ -1359,13 +1256,6 @@
         <button id="logoutDesktopBtn" class="desktop-icon-btn" aria-label="Abmelden">
           <i data-lucide="door-closed-locked"></i>
         </button>
-        <button id="statsCommitBtnDesktop" class="desktop-commit-btn" aria-label="Commit">
-          <div class="stats-reset-progress radial-progress" id="statsCommitProgressDesktop"></div>
-          <div class="stats-reset-btn-content" id="statsCommitContentDesktop">
-            <i data-lucide="check-circle-2"></i>
-          </div>
-        </button>
-        <span id="statsCommitHintDesktop" class="desktop-commit-hint">5 Sekunden halten</span>
       </div>
       <div class="page">
         <div class="cards">
@@ -1461,16 +1351,32 @@
     const desktopReminderTitle = document.getElementById("desktopReminderTitle");
     const desktopReminderBody = document.getElementById("desktopReminderBody");
     const logoutDesktopBtn = document.getElementById("logoutDesktopBtn");
-    const statsCommitBtnDesktop = document.getElementById("statsCommitBtnDesktop");
-    const statsCommitProgressDesktop = document.getElementById("statsCommitProgressDesktop");
-    const statsCommitContentDesktop = document.getElementById("statsCommitContentDesktop");
-    const statsCommitHintDesktop = document.getElementById("statsCommitHintDesktop");
     const avatarPickerOverlay = document.getElementById("avatarPickerOverlay");
     const avatarPickerButtons = document.querySelectorAll(".avatar-picker-btn");
    
     const isDesktopView = () => window.matchMedia("(min-width: 768px)").matches;
 
   document.addEventListener("DOMContentLoaded", () => {
+    function detectFont(fontName) {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return false;
+      const text = "abcdefghijklmnopqrstuvwxyz0123456789";
+      ctx.font = "16px monospace";
+      const baseline = ctx.measureText(text).width;
+      ctx.font = `16px "${fontName}", monospace`;
+      const width = ctx.measureText(text).width;
+      return width !== baseline;
+    }
+
+    if (
+      detectFont("SF Pro") ||
+      detectFont("SF Pro Text") ||
+      detectFont("SF Pro Display")
+    ) {
+      document.body.classList.add("has-sf-pro");
+    }
+
     refreshBellIcon();
     checkForAppUpdate();
     window.addEventListener("resize", () => {
@@ -1916,7 +1822,7 @@
             const pct = goal > 0 ? Math.min(progress / goal, 1) : 0;
             return sum + pct;
           }, 0);
-          let compareWord = "gleich produktiv";
+          let compareWord = "gleichmäßig produktiv";
           if (myTotal > otherTotal) {
             compareWord = "produktiver";
           } else if (myTotal < otherTotal) {
@@ -1927,7 +1833,11 @@
           const compareWordHtml = compareShouldUnderline
             ? `<span class="intro-compare-highlight">${compareWord}<span class="intro-compare-underline"></span></span>`
             : compareWord;
-          compareLine = `Du bist gerade ${compareWordHtml} als ${otherName}.`;
+          if (compareWord === "gleichmäßig produktiv") {
+            compareLine = `Du und ${otherName} sind gleichmäßig produktiv.`;
+          } else {
+            compareLine = `Du bist gerade ${compareWordHtml} als ${otherName}.`;
+          }
         } else {
           compareLine = "Du bist gerade produktiv im Vergleich zu User2.";
         }
@@ -2234,6 +2144,7 @@ forgotPw.onclick = () => {
       setupRealtime();
       setupShakeDetection();
 
+      await checkStreakResetGate();
       await safeLoadHabits();
       const subline = document.getElementById("loginSubline");
       if (subline) subline.style.display = "none";
@@ -2254,6 +2165,7 @@ forgotPw.onclick = () => {
         setupRealtime();
         setupShakeDetection();
 
+        await checkStreakResetGate();
         await safeLoadHabits();
         await showIntroProgressScreen();
       } else {
@@ -3874,6 +3786,79 @@ forgotPw.onclick = () => {
     return days[dateObj.getDay()];
   }
 
+  function getWeekRange(dateObj = new Date()) {
+    const date = new Date(dateObj);
+    const day = date.getDay();
+    const diffToMonday = (day + 6) % 7;
+    date.setDate(date.getDate() - diffToMonday);
+    date.setHours(0, 0, 0, 0);
+    const start = new Date(date);
+    const end = new Date(date);
+    end.setDate(end.getDate() + 7);
+    return { start, end };
+  }
+
+  async function performStreakResetForUser(uid) {
+    const habits = await loadHabitsForUser(uid);
+
+    const allFull =
+      habits.length === 3 &&
+      habits.every(h => {
+        if (h.qr_enabled === true || h.qr_enabled === "true") return false;
+        const goal = h.goal || 0;
+        return goal > 0 && h.progress >= goal;
+      });
+
+    const { data: streakRow, error: readErr } = await supabaseClient
+      .from("streak_view")
+      .select("current_streak, longest_streak")
+      .eq("user_id", uid)
+      .single();
+
+    if (readErr) {
+      console.error("streak read error", readErr);
+      return;
+    }
+
+    const current = streakRow?.current_streak ?? 0;
+    const longest = streakRow?.longest_streak ?? 0;
+
+    const nextCurrent = allFull ? current + 1 : 0;
+    const nextLongest = Math.max(longest, nextCurrent);
+
+    await supabaseClient
+      .from("streak_view")
+      .upsert(
+        {
+          user_id: uid,
+          current_streak: nextCurrent,
+          longest_streak: nextLongest,
+          last_update: new Date().toISOString()
+        },
+        { onConflict: "user_id" }
+      );
+
+    await supabaseClient.rpc(
+      "reset_progress_for_users",
+      { uids: [uid] }
+    );
+  }
+
+  async function checkStreakResetGate() {
+    const { start, end } = getWeekRange();
+    const startStr = getLocalDateString(start);
+    const endStr = getLocalDateString(end);
+
+    const { error } = await supabaseClient.rpc("check_streak_reset_weekly", {
+      start_date: startStr,
+      end_date: endStr
+    });
+
+    if (error) {
+      console.error("checkStreakResetGate rpc error:", error);
+    }
+  }
+
   async function syncHabitDayForProgress(habitId, progress) {
     if (!habitId) return;
     const day = getLocalDateString();
@@ -4319,19 +4304,6 @@ forgotPw.onclick = () => {
 
         html += barsHtml(otherHabits, "other");
 
-        const showCommitInStats = !isDesktopView();
-        if (showCommitInStats) {
-          html += `
-            <div class="stats-reset-wrap" style="gap:12px;">
-              <button id="statsCommitBtn" class="stats-reset-btn blue">
-                <div class="stats-reset-progress" id="statsCommitProgress"></div>
-                <div class="stats-reset-btn-content" id="statsCommitContent">
-                  <i data-lucide="check-circle-2"></i>
-                </div>
-              </button>
-            </div>
-          `;
-        }
       }
 
       statsViewEl.innerHTML = html;
@@ -4350,301 +4322,6 @@ forgotPw.onclick = () => {
       // --- NAME-EDITIERUNG AKTIVIEREN ---
       const editableName = document.getElementById("editableName");
       const statsAvatarSelf = document.getElementById("statsAvatarSelf");
-
-      // --- STATS RESET & COMMIT BUTTONS (shared hold logic) ---
-      const HOLD_DURATION = 5000;
-
-      // ---------- COMMIT BUTTON ----------
-      const statsCommitBtn = document.getElementById("statsCommitBtn");
-      const statsCommitProgress = document.getElementById("statsCommitProgress");
-      const statsCommitContent = document.getElementById("statsCommitContent");
-      const showDesktopCommit = !!otherUserData;
-      if (statsCommitBtnDesktop) statsCommitBtnDesktop.style.display = showDesktopCommit ? "inline-flex" : "none";
-
-      function setupHoldButton(btn, progressEl, contentEl, onExecute, hintText, hintLabelEl) {
-        if (!btn) return;
-
-        let holdTimer = null;
-        let startTime = null;
-        let hintTimer = null;
-
-        const showHint = () => {
-          if (hintLabelEl) {
-            hintLabelEl.textContent = hintText;
-            hintLabelEl.classList.add("is-visible");
-            if (hintTimer) clearTimeout(hintTimer);
-            hintTimer = setTimeout(() => {
-              hintLabelEl.classList.remove("is-visible");
-            }, 1600);
-          } else if (contentEl) {
-            btn.classList.add("hint");
-            contentEl.textContent = hintText;
-          }
-        };
-
-        const resetUI = () => {
-          if (progressEl.classList.contains("radial-progress")) {
-            progressEl.style.transform = "translate(-50%, -50%) scale(0)";
-          } else {
-            progressEl.style.width = "0%";
-          }
-          btn.classList.remove("hint");
-          btn.classList.remove("is-armed");
-          lucide.createIcons({ scope: contentEl });
-        };
-
-        const startHold = () => {
-          startTime = Date.now();
-          btn.classList.add("is-armed");
-          holdTimer = requestAnimationFrame(updateHold);
-        };
-
-        const updateHold = () => {
-          const elapsed = Date.now() - startTime;
-          const percent = Math.min(100, (elapsed / HOLD_DURATION) * 100);
-          if (progressEl.classList.contains("radial-progress")) {
-            progressEl.style.transform = `translate(-50%, -50%) scale(${percent / 100})`;
-          } else {
-            progressEl.style.width = percent + "%";
-          }
-
-          if (elapsed >= HOLD_DURATION) {
-            cancelAnimationFrame(holdTimer);
-            onExecute().finally(resetUI);
-          } else {
-            holdTimer = requestAnimationFrame(updateHold);
-          }
-        };
-
-        const cancelHold = () => {
-          if (holdTimer) cancelAnimationFrame(holdTimer);
-          const elapsed = startTime ? Date.now() - startTime : 0;
-          if (elapsed > 0 && elapsed < HOLD_DURATION) {
-            showHint();
-          }
-          resetUI();
-        };
-
-        btn.addEventListener("click", () => {
-          showHint();
-        });
-
-        btn.addEventListener("mousedown", startHold);
-        btn.addEventListener("touchstart", startHold);
-
-        btn.addEventListener("mouseup", cancelHold);
-        btn.addEventListener("mouseleave", cancelHold);
-        btn.addEventListener("touchend", cancelHold);
-        btn.addEventListener("touchcancel", cancelHold);
-      }
-
-
-      // ---------- COMMIT / STREAK EXECUTION ----------
-      setupHoldButton(
-        statsCommitBtn,
-        statsCommitProgress,
-        statsCommitContent,
-        async () => {
-          const users = otherUser
-            ? [currentUser.id, otherUser.id]
-            : [currentUser.id];
-
-          for (const uid of users) {
-            const habits = await loadHabitsForUser(uid);
-
-            const allFull =
-              habits.length === 3 &&
-              habits.every(h => {
-                if (h.qr_enabled === true || h.qr_enabled === "true") return false;
-                const goal = h.goal || 0;
-                return goal > 0 && h.progress >= goal;
-              });
-
-            const { data: streakRow, error: readErr } = await supabaseClient
-              .from("streak_view")
-              .select("current_streak, longest_streak")
-              .eq("user_id", uid)
-              .single();
-
-            if (readErr) {
-              console.error("streak read error", readErr);
-              continue;
-            }
-
-            const current = streakRow?.current_streak ?? 0;
-            const longest = streakRow?.longest_streak ?? 0;
-
-            const nextCurrent = allFull ? current + 1 : 0;
-            const nextLongest = Math.max(longest, nextCurrent);
-
-            await supabaseClient
-              .from("streak_view")
-              .upsert(
-                {
-                  user_id: uid,
-                  current_streak: nextCurrent,
-                  longest_streak: nextLongest,
-                  last_update: new Date().toISOString()
-                },
-                { onConflict: "user_id" }
-              );
-
-            // ➜ Progress IMMER zurücksetzen (RPC)
-            await supabaseClient.rpc(
-              "reset_progress_for_users",
-              { uids: [uid] }
-            );
-          }
-
-          // --- Create notification for the other user ---
-          if (otherUser && otherUser.id && otherUser.id !== currentUser.id) {
-            const title = "Streak-Update";
-            const body =
-              "Die andere Person hat ihren Tages-Commit abgeschlossen. Schau dir den aktuellen Stand an.";
-
-            const { error: notifErr } = await supabaseClient
-              .from("notification_message")
-              .insert({
-                user_id: otherUser.id,
-                type: "streak_commit",
-                title,
-                body,
-                created_at: new Date().toISOString()
-              });
-
-            if (notifErr) {
-              console.error("notification_message insert error:", notifErr);
-            }
-          }
-
-          // --- Create self praise notification for current user ---
-          if (currentUser && currentUser.id) {
-            const selfTitle = "Stark!";
-            const selfBody =
-              "Du hast deinen Tages-Commit erfolgreich abgeschlossen. Gute Arbeit – bleib dran.";
-
-            const { error: selfNotifErr } = await supabaseClient
-              .from("notification_message")
-              .insert({
-                user_id: currentUser.id,
-                type: "streak_commit",
-                title: selfTitle,
-                body: selfBody,
-                created_at: new Date().toISOString()
-              });
-
-            if (selfNotifErr) {
-              console.error("self notification_message insert error:", selfNotifErr);
-            }
-          }
-
-          await safeLoadHabits();
-          await refreshStatsLive();
-        },
-        "5 Sekunden halten"
-      );
-
-      setupHoldButton(
-        statsCommitBtnDesktop,
-        statsCommitProgressDesktop,
-        statsCommitContentDesktop,
-        async () => {
-          const users = otherUser
-            ? [currentUser.id, otherUser.id]
-            : [currentUser.id];
-
-          for (const uid of users) {
-            const habits = await loadHabitsForUser(uid);
-
-            const allFull =
-              habits.length === 3 &&
-              habits.every(h => {
-                if (h.qr_enabled === true || h.qr_enabled === "true") return false;
-                const goal = h.goal || 0;
-                return goal > 0 && h.progress >= goal;
-              });
-
-            const { data: streakRow, error: readErr } = await supabaseClient
-              .from("streak_view")
-              .select("current_streak, longest_streak")
-              .eq("user_id", uid)
-              .single();
-
-            if (readErr) {
-              console.error("streak read error", readErr);
-              continue;
-            }
-
-            const current = streakRow?.current_streak ?? 0;
-            const longest = streakRow?.longest_streak ?? 0;
-
-            const nextCurrent = allFull ? current + 1 : 0;
-            const nextLongest = Math.max(longest, nextCurrent);
-
-            await supabaseClient
-              .from("streak_view")
-              .upsert(
-                {
-                  user_id: uid,
-                  current_streak: nextCurrent,
-                  longest_streak: nextLongest,
-                  last_update: new Date().toISOString()
-                },
-                { onConflict: "user_id" }
-              );
-
-            await supabaseClient.rpc(
-              "reset_progress_for_users",
-              { uids: [uid] }
-            );
-          }
-
-          if (otherUser && otherUser.id && otherUser.id !== currentUser.id) {
-            const title = "Streak-Update";
-            const body =
-              "Die andere Person hat ihren Tages-Commit abgeschlossen. Schau dir den aktuellen Stand an.";
-
-            const { error: notifErr } = await supabaseClient
-              .from("notification_message")
-              .insert({
-                user_id: otherUser.id,
-                type: "streak_commit",
-                title,
-                body,
-                created_at: new Date().toISOString()
-              });
-
-            if (notifErr) {
-              console.error("notification_message insert error:", notifErr);
-            }
-          }
-
-          if (currentUser && currentUser.id) {
-            const selfTitle = "Stark!";
-            const selfBody =
-              "Du hast deinen Tages-Commit erfolgreich abgeschlossen. Gute Arbeit – bleib dran.";
-
-            const { error: selfNotifErr } = await supabaseClient
-              .from("notification_message")
-              .insert({
-                user_id: currentUser.id,
-                type: "streak_commit",
-                title: selfTitle,
-                body: selfBody,
-                created_at: new Date().toISOString()
-              });
-
-            if (selfNotifErr) {
-              console.error("self notification_message insert error:", selfNotifErr);
-            }
-          }
-
-          await safeLoadHabits();
-          await refreshStatsLive();
-        },
-        "5 Sekunden halten",
-        statsCommitHintDesktop
-      );
 
       editableName.addEventListener("click", () => {
         const current = editableName.textContent.trim();
