@@ -67,6 +67,55 @@
     .card {
       background: var(--c-card);
       color: var(--c-text);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card.is-goal-complete::after {
+      content: "";
+      position: absolute;
+      inset: -40% -120%;
+      background: linear-gradient(120deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.65) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 100%);
+      transform: translateX(-60%);
+      animation: cardShine 4.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes cardShine {
+      0% { transform: translateX(-60%); }
+      55% { transform: translateX(60%); }
+      100% { transform: translateX(60%); }
+    }
+
+    .stat-progress {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-progress::after {
+      content: "";
+      position: absolute;
+      inset: -60% -120%;
+      background: linear-gradient(120deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.65) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 100%);
+      transform: translateX(-60%);
+      animation: barShine 5.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes barShine {
+      0% { transform: translateX(-60%); }
+      60% { transform: translateX(60%); }
+      100% { transform: translateX(60%); }
     }
 
     .card-face.back {
@@ -1456,7 +1505,7 @@
       { id: "bread-1", emoji: "🍞", label: "2x Brot mit Belag (Frühstück)" },
       { id: "soup", emoji: "🍲", label: "Mittagessen" },
       { id: "bread-2", emoji: "🍞", label: "2x Brot mit Belag (Abendessen)" },
-      { id: "quark", emoji: "🥛", label: "Speisequark" }
+      { id: "quark", emoji: "🥛", label: "2x Speisequark" }
     ];
     const reminderChecklistState = new Set();
 
@@ -1672,6 +1721,14 @@
         ease: "power1.in"
       });
       refreshAddButtonIcon();
+    }
+
+    function updateCardCompletion(card) {
+      if (!card) return;
+      const goal = parseInt(card.dataset.goal) || 0;
+      const progress = parseInt(card.dataset.progress) || 0;
+      const isComplete = goal > 0 && progress >= goal;
+      card.classList.toggle("is-goal-complete", isComplete);
     }
     
     addBtnEl.addEventListener("click", async () => {
@@ -2662,6 +2719,7 @@ forgotPw.onclick = () => {
 
       const isActive = progress > 0;
       card.dataset.active = isActive ? "true" : "false";
+      updateCardCompletion(card);
 
       // --- HTML ---
       card.innerHTML = `
@@ -2930,6 +2988,7 @@ forgotPw.onclick = () => {
           counter.style.display = "none";
         }
 
+        updateCardCompletion(card);
         saveHabit(card);
       });
 
@@ -2996,6 +3055,8 @@ forgotPw.onclick = () => {
             input.style.color = "#666";
             card.dataset.color = "#e4e4e4";
           }
+
+          updateCardCompletion(card);
 
           const habitId = card.dataset.habitId;
           if (!habitId) return;
@@ -3185,6 +3246,7 @@ forgotPw.onclick = () => {
 
           cardEl.dataset.progress = progress;
           cardEl.dataset.active = active ? 'true' : 'false';
+          updateCardCompletion(cardEl);
 
           // Update counter UI
           const counterEl = cardEl.querySelector('.counter');
@@ -3603,6 +3665,7 @@ forgotPw.onclick = () => {
           // Lokales Update
           card.dataset.progress = 0;
           card.dataset.active = "false";
+          updateCardCompletion(card);
 
           const input = card.querySelector(".card-input");
           card.style.background = "#e4e4e4";
@@ -3692,6 +3755,7 @@ forgotPw.onclick = () => {
 
       card.dataset.progress = progress;
       card.dataset.active   = active ? "true" : "false";
+      updateCardCompletion(card);
 
       // Ensure subtitle/subtask colors follow the title color immediately
       try {
