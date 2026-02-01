@@ -69,44 +69,6 @@
       color: var(--c-text);
     }
 
-    .card-face.front {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .card.is-goal-complete .card-face.front::after {
-      content: "";
-      position: absolute;
-      inset: -120% -120%;
-      background: linear-gradient(120deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.2) 40%,
-        rgba(255, 255, 255, 0.65) 50%,
-        rgba(255, 255, 255, 0.2) 60%,
-        transparent 100%);
-      transform: translateX(-60%);
-      animation: cardShine 4.8s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .card-face.front .card-input,
-    .card-face.front .expand-area {
-      position: relative;
-      z-index: 2;
-    }
-
-    .card-face.front .counter-wrap {
-      z-index: 2;
-    }
-
-    @keyframes cardShine {
-      0% { transform: translateX(-60%); }
-      55% { transform: translateX(60%); }
-      100% { transform: translateX(60%); }
-    }
-
-
     .card-face.back {
       background: var(--c-card);
       color: var(--c-text);
@@ -453,14 +415,11 @@
       opacity:0;
       transition:transform 0.25s linear;
       height:100%;
-      will-change: transform;
     }
 
     .card-face {
       position:absolute;
       inset:0;
-      width:100%;
-      height:100%;
       backface-visibility:hidden;
       border-radius:24px;
       padding:24px;
@@ -1695,10 +1654,6 @@
           typeof DeviceMotionEvent.requestPermission === "function") {
         await DeviceMotionEvent.requestPermission().catch(() => {});
       }
-      if (typeof DeviceOrientationEvent !== "undefined" &&
-          typeof DeviceOrientationEvent.requestPermission === "function") {
-        await DeviceOrientationEvent.requestPermission().catch(() => {});
-      }
 
       localStorage.setItem(PERM_KEYS.motion, "1");
     }
@@ -1717,14 +1672,6 @@
         ease: "power1.in"
       });
       refreshAddButtonIcon();
-    }
-
-    function updateCardCompletion(card) {
-      if (!card) return;
-      const goal = parseInt(card.dataset.goal) || 0;
-      const progress = parseInt(card.dataset.progress) || 0;
-      const isComplete = goal > 0 && progress >= goal;
-      card.classList.toggle("is-goal-complete", isComplete);
     }
     
     addBtnEl.addEventListener("click", async () => {
@@ -2118,7 +2065,6 @@
       if (introFlowDone) return;
       introFlowDone = true;
       await requestIntroPermissionsOnce();
-      setupCardTilt();
       showAppAfterDataLoaded();
       await ensureDesktopStats();
       await ensureAvatarSelected();
@@ -2716,7 +2662,6 @@ forgotPw.onclick = () => {
 
       const isActive = progress > 0;
       card.dataset.active = isActive ? "true" : "false";
-      updateCardCompletion(card);
 
       // --- HTML ---
       card.innerHTML = `
@@ -2985,7 +2930,6 @@ forgotPw.onclick = () => {
           counter.style.display = "none";
         }
 
-        updateCardCompletion(card);
         saveHabit(card);
       });
 
@@ -3052,8 +2996,6 @@ forgotPw.onclick = () => {
             input.style.color = "#666";
             card.dataset.color = "#e4e4e4";
           }
-
-          updateCardCompletion(card);
 
           const habitId = card.dataset.habitId;
           if (!habitId) return;
@@ -3243,7 +3185,6 @@ forgotPw.onclick = () => {
 
           cardEl.dataset.progress = progress;
           cardEl.dataset.active = active ? 'true' : 'false';
-          updateCardCompletion(cardEl);
 
           // Update counter UI
           const counterEl = cardEl.querySelector('.counter');
@@ -3662,7 +3603,6 @@ forgotPw.onclick = () => {
           // Lokales Update
           card.dataset.progress = 0;
           card.dataset.active = "false";
-          updateCardCompletion(card);
 
           const input = card.querySelector(".card-input");
           card.style.background = "#e4e4e4";
@@ -3752,7 +3692,6 @@ forgotPw.onclick = () => {
 
       card.dataset.progress = progress;
       card.dataset.active   = active ? "true" : "false";
-      updateCardCompletion(card);
 
       // Ensure subtitle/subtask colors follow the title color immediately
       try {
@@ -4777,57 +4716,11 @@ forgotPw.onclick = () => {
   let lastShakeTime = 0;
   const SHAKE_THRESHOLD = 18; // ggf. anpassen
 
-    function setupShakeDetection() {
-      if (typeof window === "undefined") return;
-      if (!("DeviceMotionEvent" in window)) return;
-
-      window.addEventListener("devicemotion", handleDeviceMotion, false);
-    }
-
-  // === Subtle 3D parallax based on device orientation ===
-  let lastTilt = { x: 0, y: 0 };
-  let tiltRaf = null;
-
-  function setupCardTilt() {
+  function setupShakeDetection() {
     if (typeof window === "undefined") return;
-    if (!("DeviceOrientationEvent" in window)) return;
-    if (window.matchMedia("(min-width: 768px)").matches) return;
+    if (!("DeviceMotionEvent" in window)) return;
 
-    window.addEventListener("deviceorientation", handleDeviceOrientation, true);
-  }
-
-  function handleDeviceOrientation(e) {
-    // gamma: left/right (-90..90), beta: front/back (-180..180)
-    const gamma = Math.max(-30, Math.min(30, e.gamma || 0));
-    const beta = Math.max(-30, Math.min(30, e.beta || 0));
-
-    lastTilt.x = gamma / 30; // -1..1
-    lastTilt.y = beta / 30;
-
-    if (!tiltRaf) {
-      tiltRaf = requestAnimationFrame(applyTiltToCards);
-    }
-  }
-
-  function applyTiltToCards() {
-    tiltRaf = null;
-    const cards = document.querySelectorAll(".card");
-    if (!cards.length) return;
-
-    cards.forEach((card, idx) => {
-      const dir = (idx % 2 === 0) ? 1 : -1;
-      const tx = lastTilt.x * 6 * dir;
-      const ty = lastTilt.y * 5 * (idx === 1 ? -1 : 1);
-      const rx = lastTilt.y * -3;
-      const ry = lastTilt.x * 4 * dir;
-
-      // Keep flip/other transforms intact by appending a translate/rotate
-      const base = card.style.transform && card.style.transform.length
-        ? card.style.transform.split(" translate3d")[0].split(" rotateX")[0].split(" rotateY")[0]
-        : "";
-
-      card.style.transform = `${base} rotateX(${rx}deg) rotateY(${ry}deg) translate3d(${tx}px, ${ty}px, 0)`;
-    });
+    window.addEventListener("devicemotion", handleDeviceMotion, false);
   }
 
   function handleDeviceMotion(event) {
