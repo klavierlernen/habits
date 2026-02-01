@@ -373,6 +373,191 @@
       opacity:0;
     }
 
+    /* Mobile merged view */
+    #mobileMerged {
+      position:absolute;
+      inset:0;
+      overflow:hidden;
+      padding:20px 18px 140px;
+      display:flex;
+      flex-direction:column;
+      gap:22px;
+    }
+
+    .mobile-hero {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:14px;
+      position:relative;
+      position:sticky;
+      top:0;
+      z-index:5;
+      background:var(--c-bg);
+      padding-top:6px;
+      padding-bottom:10px;
+    }
+
+    .mobile-bubbles {
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      gap:18px;
+      position:relative;
+      min-height:96px;
+    }
+
+    .bubble {
+      width:64px;
+      height:64px;
+      border-radius:999px;
+      overflow:hidden;
+      border:2px solid var(--c-card);
+      background:var(--c-card);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 12px 30px rgba(0,0,0,0.08);
+      transform-origin:center;
+    }
+
+    .bubble.is-leader {
+      width:90px;
+      height:90px;
+      border-width:3px;
+    }
+
+    .bubble img {
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .mobile-title {
+      font-size:28px;
+      font-weight:800;
+      text-align:center;
+      line-height:1.1;
+      max-width:320px;
+    }
+
+    .mobile-dot-rail {
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      margin-top:8px;
+      margin-bottom:2px;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .mobile-dot {
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      background:var(--c-card);
+      transform:scale(0);
+    }
+
+    .mobile-cards {
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .mobile-cards .slot {
+      min-height: 120px;
+      max-height: 260px;
+    }
+
+    .buttons-row {
+      display:none !important;
+    }
+
+    .mobile-divider {
+      height:1px;
+      background:var(--c-card);
+      border-radius:999px;
+      width:100%;
+    }
+
+    #mobileStats {
+      display:flex;
+      flex-direction:column;
+      gap:26px;
+    }
+
+    .mobile-stats-block {
+      background:var(--c-card);
+      border-radius:20px;
+      padding:16px;
+    }
+
+    .mobile-stats-header {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+      font-size:1.1rem;
+      font-weight:800;
+    }
+
+    .mobile-stats-header img {
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      object-fit:cover;
+    }
+
+    .mobile-stats-sub {
+      font-size:0.85rem;
+      color:var(--c-text);
+      opacity:0.6;
+      margin-bottom:10px;
+    }
+
+    .mobile-graph {
+      width:100%;
+      height:120px;
+      display:block;
+    }
+
+    .mobile-legend {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px 14px;
+      margin-top:10px;
+      font-size:0.85rem;
+      font-weight:600;
+    }
+
+    .mobile-legend span {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .mobile-legend i {
+      display:inline-block;
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      background:var(--c-text);
+    }
+
+    @media (min-width: 768px) {
+      #mobileMerged { display:none; }
+    }
+
+    @media (max-width: 767px) {
+      .desktop-workspace,
+      .desktop-divider,
+      .desktop-right,
+      #statsView {
+        display:none !important;
+      }
+    }
+
     .page {
       height:100%;
       display:flex;
@@ -393,6 +578,7 @@
       position:relative;
       min-height:var(--card-height);
       perspective:1200px;
+      transition:height 0.18s ease;
     }
 
     .card {
@@ -406,6 +592,8 @@
       opacity:0;
       transition:transform 0.25s linear;
       height:100%;
+      will-change: transform;
+      overflow:hidden;
     }
 
     .card-face {
@@ -1201,6 +1389,31 @@
 
 <!-- MAIN HABIT PAGE (3 Klötze) -->
 <div id="appPage">
+  <!-- MOBILE MERGED VIEW -->
+  <div id="mobileMerged">
+    <section class="mobile-hero">
+      <div class="mobile-bubbles" id="mobileBubbles">
+        <div class="bubble" id="bubbleSelf"><img id="bubbleSelfImg" alt="User"></div>
+        <div class="bubble" id="bubbleOther"><img id="bubbleOtherImg" alt="User 2"></div>
+      </div>
+      <div class="mobile-title" id="mobileLeadTitle">Lass dich nicht abhängen</div>
+      <div class="mobile-dot-rail" id="mobileDotRail">
+        <div class="mobile-dot" data-dot="1"></div>
+        <div class="mobile-dot" data-dot="2"></div>
+        <div class="mobile-dot" data-dot="3"></div>
+      </div>
+    </section>
+
+    <section class="mobile-cards" id="mobileCards">
+      <div class="slot" id="slot1"></div>
+      <div class="slot" id="slot2"></div>
+      <div class="slot" id="slot3"></div>
+    </section>
+
+    <div class="mobile-divider"></div>
+
+    <section id="mobileStats"></section>
+  </div>
     <!-- WEEKLY MEDAL SCREEN -->
     <div id="medalScreen" style="
       position:fixed;
@@ -1258,11 +1471,7 @@
         </button>
       </div>
       <div class="page">
-        <div class="cards">
-          <div class="slot" id="slot1"></div>
-          <div class="slot" id="slot2"></div>
-          <div class="slot" id="slot3"></div>
-        </div>
+        <div class="cards"></div>
       </div>
     </div>
     <div class="desktop-divider"></div>
@@ -1353,6 +1562,15 @@
     const logoutDesktopBtn = document.getElementById("logoutDesktopBtn");
     const avatarPickerOverlay = document.getElementById("avatarPickerOverlay");
     const avatarPickerButtons = document.querySelectorAll(".avatar-picker-btn");
+    const mobileMergedEl = document.getElementById("mobileMerged");
+    const mobileLeadTitle = document.getElementById("mobileLeadTitle");
+    const mobileDotRail = document.getElementById("mobileDotRail");
+    const mobileStatsEl = document.getElementById("mobileStats");
+    const mobileCardsEl = document.getElementById("mobileCards");
+    const bubbleSelf = document.getElementById("bubbleSelf");
+    const bubbleOther = document.getElementById("bubbleOther");
+    const bubbleSelfImg = document.getElementById("bubbleSelfImg");
+    const bubbleOtherImg = document.getElementById("bubbleOtherImg");
    
     const isDesktopView = () => window.matchMedia("(min-width: 768px)").matches;
 
@@ -1704,6 +1922,190 @@
       });
     }
 
+    let mobileBubbleAnimStarted = false;
+    let mobileMorphBound = false;
+    let mobileMorphProgress = 0;
+    let mobileMorphTarget = 0;
+    let mobileMorphRaf = null;
+
+    function startMobileBubbleFloat() {
+      if (mobileBubbleAnimStarted || !bubbleSelf || !bubbleOther) return;
+      mobileBubbleAnimStarted = true;
+      gsap.to(bubbleSelf, {
+        y: -6,
+        x: 4,
+        duration: 2.8,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
+      });
+      gsap.to(bubbleOther, {
+        y: -8,
+        x: -3,
+        duration: 3.2,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
+      });
+    }
+
+    function setMobileCardBaseHeights() {
+      if (!mobileMergedEl || !mobileCardsEl) return;
+      const hero = document.querySelector(".mobile-hero");
+      const heroHeight = hero ? hero.offsetHeight : 0;
+      const paddingTop = parseFloat(getComputedStyle(mobileMergedEl).paddingTop || 0);
+      const paddingBottom = parseFloat(getComputedStyle(mobileMergedEl).paddingBottom || 0);
+      const gap = parseFloat(getComputedStyle(mobileCardsEl).gap || 0);
+      const available = mobileMergedEl.clientHeight - heroHeight - paddingTop - paddingBottom - 8;
+      const slotHeight = Math.max(120, (available - gap * 2) / 3);
+      const slots = Array.from(mobileCardsEl.querySelectorAll(".slot"));
+      slots.forEach(slot => {
+        slot.dataset.baseHeight = String(slotHeight);
+        slot.style.height = `${slotHeight}px`;
+      });
+    }
+
+    function setupMobileCardMorph() {
+      if (mobileMorphBound || !mobileMergedEl || !mobileDotRail) return;
+      mobileMorphBound = true;
+
+      const divider = document.querySelector(".mobile-divider");
+      const dots = Array.from(mobileDotRail.querySelectorAll(".mobile-dot"));
+      const pathOffsets = [
+        { x: -40, y: -30 },
+        { x: 20, y: -40 },
+        { x: 40, y: -20 }
+      ];
+
+      const applyProgress = (progress) => {
+        const eased = progress * (2 - progress);
+
+        const cards = Array.from(document.querySelectorAll(".card"));
+        if (mobileDotRail) {
+          mobileDotRail.style.opacity = "0";
+        }
+
+        const titleRect = mobileLeadTitle ? mobileLeadTitle.getBoundingClientRect() : null;
+        const baseX = titleRect ? (titleRect.left + titleRect.width / 2) : window.innerWidth / 2;
+        const baseY = titleRect ? (titleRect.bottom + 16) : 180;
+        const spacing = 26;
+        const targets = [
+          { x: baseX - spacing, y: baseY },
+          { x: baseX, y: baseY },
+          { x: baseX + spacing, y: baseY }
+        ];
+
+        const targetDot = 2;
+        cards.forEach((card, i) => {
+          const cardRect = card.getBoundingClientRect();
+          const target = targets[i] || targets[targets.length - 1];
+          const dx = target.x - (cardRect.left + cardRect.width / 2);
+          const dy = target.y - (cardRect.top + cardRect.height / 2);
+          const offset = pathOffsets[i % pathOffsets.length];
+          const scaleX = 1 - eased * (1 - (targetDot / Math.max(1, cardRect.width)));
+          const scaleY = 1 - eased * (1 - (targetDot / Math.max(1, cardRect.height)));
+          const pathX = dx + offset.x * (1 - eased);
+          const pathY = dy + offset.y * (1 - eased);
+          card.style.transform = `scale(${scaleX}, ${scaleY}) translate(${pathX * eased}px, ${pathY * eased}px)`;
+          card.style.borderRadius = `${20 + eased * 999}px`;
+          card.style.padding = `${24 * (1 - eased)}px`;
+          const faces = card.querySelectorAll(".card-face");
+          faces.forEach(face => {
+            face.style.opacity = `${1 - eased}`;
+          });
+        });
+
+        if (mobileStatsEl) {
+          const dotsRect = mobileDotRail.getBoundingClientRect();
+          const targetTop = dotsRect.bottom + 16;
+          const statsRect = mobileStatsEl.getBoundingClientRect();
+          const delta = targetTop - statsRect.top;
+          mobileStatsEl.style.transform = `translateY(${delta * eased}px)`;
+        }
+        if (divider) {
+          const dotsRect = mobileDotRail.getBoundingClientRect();
+          const targetTop = dotsRect.bottom + 10;
+          const dividerRect = divider.getBoundingClientRect();
+          const delta = targetTop - dividerRect.top;
+          divider.style.transform = `translateY(${delta * eased}px)`;
+        }
+      };
+
+      const animateProgress = () => {
+        mobileMorphProgress += (mobileMorphTarget - mobileMorphProgress) * 0.18;
+        if (Math.abs(mobileMorphTarget - mobileMorphProgress) < 0.002) {
+          mobileMorphProgress = mobileMorphTarget;
+        }
+        applyProgress(mobileMorphProgress);
+        if (mobileMorphProgress !== mobileMorphTarget) {
+          mobileMorphRaf = requestAnimationFrame(animateProgress);
+        } else {
+          mobileMorphRaf = null;
+        }
+      };
+
+      const setTarget = (next) => {
+        mobileMorphTarget = Math.max(0, Math.min(1, next));
+        if (!mobileMorphRaf) {
+          mobileMorphRaf = requestAnimationFrame(animateProgress);
+        }
+      };
+
+      const onWheel = (e) => {
+        if (!mobileMergedEl) return;
+        e.preventDefault();
+        const delta = e.deltaY || 0;
+        setTarget(mobileMorphTarget + (delta / 800));
+      };
+
+      let touchStartY = 0;
+      const onTouchStart = (e) => {
+        touchStartY = e.touches[0]?.clientY || 0;
+      };
+      const onTouchMove = (e) => {
+        const currentY = e.touches[0]?.clientY || 0;
+        const delta = touchStartY - currentY;
+        if (Math.abs(delta) > 1) {
+          e.preventDefault();
+          setTarget(mobileMorphTarget + (delta / 600));
+          touchStartY = currentY;
+        }
+      };
+
+      mobileMergedEl.addEventListener("wheel", onWheel, { passive: false });
+      mobileMergedEl.addEventListener("touchstart", onTouchStart, { passive: true });
+      mobileMergedEl.addEventListener("touchmove", onTouchMove, { passive: false });
+
+      let raf = null;
+      const onScroll = () => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = null;
+          applyProgress(mobileMorphProgress);
+        });
+      };
+
+      mobileMergedEl.addEventListener("scroll", onScroll);
+      window.addEventListener("resize", () => {
+        if (divider) divider.style.transform = "";
+        if (mobileStatsEl) mobileStatsEl.style.transform = "";
+        const cards = Array.from(document.querySelectorAll(".card"));
+        cards.forEach(card => {
+          card.style.transform = "";
+          card.style.borderRadius = "";
+          card.style.padding = "";
+          const faces = card.querySelectorAll(".card-face");
+          faces.forEach(face => {
+            face.style.opacity = "";
+          });
+        });
+        setMobileCardBaseHeights();
+        applyProgress(mobileMorphProgress);
+      });
+      setMobileCardBaseHeights();
+      applyProgress(mobileMorphProgress);
+    }
+
     function escapeHtml(value) {
       return String(value || "")
         .replace(/&/g, "&amp;")
@@ -1798,7 +2200,7 @@
       }
 
       if (introHeadline) {
-        introHeadline.textContent = `Hallo ${displayName}, lass uns kurz auf deinen Fortschritt schauen.`;
+        introHeadline.textContent = `Hallo ${displayName}, lass uns kurz auf deinen Fortschritt schauen`;
       }
 
       try {
@@ -1925,6 +2327,9 @@
       introFlowDone = true;
       showAppAfterDataLoaded();
       await ensureDesktopStats();
+      if (!isDesktopView()) {
+        await refreshStatsLive();
+      }
       await ensureAvatarSelected();
       await checkMedalScreen();
       const qr = getQRParam();
@@ -2235,6 +2640,11 @@ forgotPw.onclick = () => {
       });
 
       refreshAddButtonIcon();
+      if (!isDesktopView()) {
+        startMobileBubbleFloat();
+        setMobileCardBaseHeights();
+        setupMobileCardMorph();
+      }
     }
 
     async function createInitialHabits() {
@@ -3892,6 +4302,39 @@ forgotPw.onclick = () => {
     return months[dateObj.getMonth()];
   }
 
+  function getDaysInMonth(dateObj = new Date()) {
+    return new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).getDate();
+  }
+
+  function buildMonthlyGraph(habitsList, dayMap, daysInMonth) {
+    const width = 320;
+    const height = 120;
+    const padX = 8;
+    const padY = 14;
+    const xStep = daysInMonth > 1 ? (width - padX * 2) / (daysInMonth - 1) : 0;
+    const baseY = height - padY;
+    const topY = padY;
+
+    const lines = habitsList.map((habit, idx) => {
+      const color = habit?.color || "var(--c-text)";
+      const daySet = dayMap[habit.id] instanceof Set ? dayMap[habit.id] : new Set();
+      const points = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const x = padX + (d - 1) * xStep;
+        const y = daySet.has(d) ? topY : baseY;
+        points.push(`${x},${y}`);
+      }
+      return `<polyline points="${points.join(" ")}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+    });
+
+    return `
+      <svg class="mobile-graph" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+        <rect x="0" y="0" width="${width}" height="${height}" rx="16" ry="16" fill="var(--c-bg)" opacity="0.35"></rect>
+        ${lines.join("")}
+      </svg>
+    `;
+  }
+
   function getMonthRange(dateObj = new Date()) {
     const year = dateObj.getFullYear();
     const month = dateObj.getMonth();
@@ -3992,6 +4435,92 @@ forgotPw.onclick = () => {
     ]);
     statsCalendarData = { ...myMap, ...otherMap };
     renderStatCalendars();
+  }
+
+  async function renderMobileStats(myHabits, otherHabits, otherUserData) {
+    if (!mobileStatsEl) return;
+    const now = new Date();
+    const monthName = getGermanMonthName(now);
+    const daysInMonth = getDaysInMonth(now);
+    const prevOffset = statsCalendarOffset;
+    statsCalendarOffset = 0;
+    const myDayMap = await loadHabitDaysForMonth((myHabits || []).map(h => h.id).filter(Boolean));
+    const otherDayMap = otherUserData
+      ? await loadHabitDaysForMonth((otherHabits || []).map(h => h.id).filter(Boolean))
+      : {};
+    statsCalendarOffset = prevOffset;
+
+    const renderLegend = (habitsList) => {
+      const items = (habitsList || []).map(h => {
+        const title = escapeHtml(h?.title || "Habit");
+        const color = h?.color || "var(--c-text)";
+        return `<span><i style="background:${color}"></i>${title}</span>`;
+      }).join("");
+      return `<div class="mobile-legend">${items}</div>`;
+    };
+
+    const myGraph = buildMonthlyGraph(myHabits, myDayMap, daysInMonth);
+    const myAvatar = getAvatarUrl(currentUser?.user_metadata || {});
+    const myName = currentUser?.user_metadata?.display_name || currentUser?.email?.split("@")[0] || "Du";
+
+    let html = `
+      <div class="mobile-stats-block">
+        <div class="mobile-stats-header">
+          <img src="${myAvatar}" alt="Avatar">
+          <div>${escapeHtml(myName)}</div>
+        </div>
+        <div class="mobile-stats-sub">${monthName}</div>
+        ${myGraph}
+        ${renderLegend(myHabits)}
+      </div>
+    `;
+
+    if (otherUserData) {
+      const otherAvatar = getAvatarUrl(otherUserData || {});
+      const otherName = otherUserData.display_name || "User 2";
+      const otherGraph = buildMonthlyGraph(otherHabits, otherDayMap, daysInMonth);
+      html += `
+        <div class="mobile-stats-block">
+          <div class="mobile-stats-header">
+            <img src="${otherAvatar}" alt="Avatar">
+            <div>${escapeHtml(otherName)}</div>
+          </div>
+          <div class="mobile-stats-sub">${monthName}</div>
+          ${otherGraph}
+          ${renderLegend(otherHabits)}
+        </div>
+      `;
+    }
+
+    mobileStatsEl.innerHTML = html;
+  }
+
+  async function updateMobileHero(otherUserData) {
+    if (!mobileMergedEl) return;
+    const myAvatar = getAvatarUrl(currentUser?.user_metadata || {});
+    if (bubbleSelfImg) bubbleSelfImg.src = myAvatar;
+
+    let myStreak = 0;
+    let otherStreak = 0;
+    if (currentUser?.id) myStreak = await loadStreakForUser(currentUser.id);
+    if (otherUserData?.id) otherStreak = await loadStreakForUser(otherUserData.id);
+
+    const otherAvatar = otherUserData ? getAvatarUrl(otherUserData || {}) : "";
+    if (bubbleOtherImg) bubbleOtherImg.src = otherAvatar || myAvatar;
+
+    const otherName = otherUserData?.display_name || "deinem Buddy";
+    if (mobileLeadTitle) {
+      mobileLeadTitle.textContent = `Lass dich nicht von ${otherName} abhängen`;
+    }
+
+    if (bubbleSelf && bubbleOther) {
+      bubbleSelf.classList.toggle("is-leader", myStreak >= otherStreak);
+      bubbleOther.classList.toggle("is-leader", otherStreak > myStreak);
+      bubbleOther.style.opacity = otherUserData ? "1" : "0";
+    }
+
+    startMobileBubbleFloat();
+    setupMobileCardMorph();
   }
 
   function renderStatCalendars() {
@@ -4404,12 +4933,23 @@ forgotPw.onclick = () => {
   async function refreshStatsLive() {
     if (!currentUser) return;
 
-    const myHabits    = await loadHabitsForUser(currentUser.id);
-    const otherHabits = otherUser ? await loadHabitsForUser(otherUser.id) : [];
-    renderStats(myHabits, otherHabits, otherUser);
+    const myHabits = await loadHabitsForUser(currentUser.id);
+    let otherUserData = otherUser;
+    if (!otherUserData) {
+      otherUserData = await loadOtherUser();
+      otherUser = otherUserData;
+    }
+    const otherHabits = otherUserData ? await loadHabitsForUser(otherUserData.id) : [];
+    if (isDesktopView()) {
+      renderStats(myHabits, otherHabits, otherUserData);
+    } else {
+      await renderMobileStats(myHabits, otherHabits, otherUserData);
+      await updateMobileHero(otherUserData);
+    }
   }
 
     statsBtnEl.addEventListener("click", async () => {
+      if (!isDesktopView()) return;
 
       // Close notifications if open
       gsap.to("#notificationsView", {
