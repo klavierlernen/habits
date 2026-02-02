@@ -34,7 +34,16 @@
         --c-bg: #ffffff;
         --c-text: #000000;
         --c-card: #e4e4e4;
-        color-scheme: light;
+        color-scheme: light dark;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --c-bg: #000000;
+          --c-text: #ffffff;
+          --c-card: #1e1e1e;
+          color-scheme: dark;
+        }
       }
 
     * {
@@ -54,6 +63,7 @@
       height:100svh;
       overflow:hidden;
     }
+
     /* Dark Mode Enhancements */
     .card {
       background: var(--c-card);
@@ -135,9 +145,117 @@
     #loginCircle {
       width:30px;
       height:30px;
-      background:#000;
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
       border-radius:50%;
       animation:pulse 2.2s ease-in-out infinite;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #loginOrbLayer {
+      position: absolute;
+      inset: -30%;
+      border-radius: 50%;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    .login-orb {
+      position: absolute;
+      width: 60%;
+      height: 60%;
+      border-radius: 50%;
+      filter: blur(10px);
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      animation: loginBlob 4.8s ease-in-out infinite;
+    }
+
+    body.login-orbs-paused .login-orb {
+      animation-play-state: paused;
+    }
+    .login-orb.orb-1 { top: -10%; left: 5%; }
+    .login-orb.orb-2 { top: 10%; right: -5%; }
+    .login-orb.orb-3 { bottom: -8%; left: 12%; }
+    .login-orb.orb-4 { top: 35%; left: -12%; }
+    .login-orb.orb-5 { bottom: 18%; right: -10%; }
+    .login-orb.orb-6 { top: -6%; right: 18%; }
+    .login-orb.orb-7 { bottom: -12%; right: 8%; }
+    .login-orb.orb-8 { top: 28%; left: 22%; }
+    .login-orb.orb-9 { bottom: 28%; left: 38%; }
+
+    .login-orb.orb-2 {
+      width: 50%;
+      height: 50%;
+      opacity: 0.65;
+      animation-duration: 5.6s;
+      animation-delay: -1.2s;
+    }
+
+    .login-orb.orb-3 {
+      width: 42%;
+      height: 42%;
+      opacity: 0.55;
+      animation-duration: 6.4s;
+      animation-delay: -2.1s;
+    }
+
+    .login-orb.orb-4 {
+      width: 55%;
+      height: 55%;
+      opacity: 0.5;
+      animation-duration: 7s;
+      animation-delay: -3s;
+    }
+
+    .login-orb.orb-5 {
+      width: 48%;
+      height: 48%;
+      opacity: 0.6;
+      animation-duration: 5.2s;
+      animation-delay: -1.8s;
+    }
+
+    .login-orb.orb-6 {
+      width: 40%;
+      height: 40%;
+      opacity: 0.55;
+      animation-duration: 6.8s;
+      animation-delay: -2.6s;
+    }
+
+    .login-orb.orb-7 {
+      width: 52%;
+      height: 52%;
+      opacity: 0.6;
+      animation-duration: 5.9s;
+      animation-delay: -2.2s;
+    }
+
+    .login-orb.orb-8 {
+      width: 44%;
+      height: 44%;
+      opacity: 0.5;
+      animation-duration: 7.4s;
+      animation-delay: -3.4s;
+    }
+
+    .login-orb.orb-9 {
+      width: 36%;
+      height: 36%;
+      opacity: 0.5;
+      animation-duration: 6.1s;
+      animation-delay: -2.9s;
+    }
+
+    @keyframes loginBlob {
+      0%   { transform: translate(6%, 8%) scale(0.9); }
+      35%  { transform: translate(18%, -6%) scale(1.1); }
+      65%  { transform: translate(-10%, 12%) scale(0.95); }
+      100% { transform: translate(6%, 8%) scale(0.9); }
     }
 
     #loginHeadline {
@@ -197,6 +315,8 @@
       width: 100%;
       height: 100%;
       display: block;
+      position: relative;
+      z-index: 2;
     }
 
     #introStreakCenter {
@@ -207,6 +327,7 @@
       align-items: center;
       justify-content: center;
       pointer-events: none;
+      z-index: 3;
     }
 
     #introStreakValue {
@@ -794,6 +915,8 @@
         bottom:auto;
         padding:0;
         overflow:visible;
+        transform:none;
+        pointer-events:auto;
       }
     }
 
@@ -1043,6 +1166,111 @@
         padding-bottom: 140px;
         overflow-y: auto;
         z-index: 55;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .reminder-pane {
+        width: min(440px, 92vw);
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+        position: relative;
+      }
+
+      .reminder-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 80px;
+        padding-top: 8px;
+      }
+
+      .reminder-close {
+        position: fixed;
+        right: calc(16px + env(safe-area-inset-right));
+        top: calc(16px + env(safe-area-inset-top));
+        z-index: 1000;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: none;
+        background: transparent;
+        color: var(--c-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .reminder-close svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .reminder-status {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        opacity: 0;
+        transform: translateY(-6px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+
+      .reminder-status.is-complete {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .reminder-status svg {
+        width: 32px;
+        height: 32px;
+        color: #1f9e57;
+      }
+
+      .reminder-status-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .reminder-list {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        text-align: left;
+      }
+
+      .reminder-item {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        border: none;
+        background: transparent;
+        color: var(--c-text);
+        font-size: 1.05rem;
+        font-weight: 600;
+        cursor: pointer;
+        opacity: 0.5;
+      }
+
+      .reminder-item.is-selected {
+        color: var(--c-text);
+        opacity: 1;
+      }
+
+      .reminder-emoji {
+        font-size: 1.35rem;
+        line-height: 1;
       }
 
       .notification-title {
@@ -1059,20 +1287,6 @@
         font-weight: 600;
       }
       
-      @keyframes bellShake {
-        0% { transform: rotate(0deg); }
-        20% { transform: rotate(-10deg); }
-        40% { transform: rotate(10deg); }
-        60% { transform: rotate(-6deg); }
-        80% { transform: rotate(6deg); }
-        100% { transform: rotate(0deg); }
-      }
-
-      .bell-shake {
-        animation: bellShake 1.2s ease-in-out infinite;
-        transform-origin: 50% 0%;
-      }
-
       .avatar-picker-overlay {
         position:fixed;
         inset:0;
@@ -1146,7 +1360,19 @@
 
 <!-- LOGIN -->
 <div id="loginScreen">
-  <div id="loginCircle"></div>
+    <div id="loginCircle">
+      <div id="loginOrbLayer" aria-hidden="true">
+        <div class="login-orb orb-1"></div>
+        <div class="login-orb orb-2"></div>
+        <div class="login-orb orb-3"></div>
+        <div class="login-orb orb-4"></div>
+        <div class="login-orb orb-5"></div>
+        <div class="login-orb orb-6"></div>
+        <div class="login-orb orb-7"></div>
+        <div class="login-orb orb-8"></div>
+        <div class="login-orb orb-9"></div>
+      </div>
+    </div>
   <div id="loginHeadline">Wir versuchen dich anzumelden</div>
 
   <div id="loginButtonBar" style="display:none;">
@@ -1242,7 +1468,7 @@
       <div class="desktop-left">
       <div class="desktop-actions">
         <button id="remindersDesktopBtn" class="desktop-icon-btn" aria-label="Reminders">
-          <i data-lucide="bell"></i>
+          <i data-lucide="cookie"></i>
         </button>
         <div id="desktopReminderPopover" class="desktop-reminder-popover" aria-hidden="true">
           <div class="desktop-reminder-title">
@@ -1277,11 +1503,11 @@
     </button>
 
     <button class="btn-half btn-bell" id="bellBtn">
-      <i data-lucide="bell"></i>
+      <i data-lucide="cookie"></i>
     </button>
 
     <button class="btn-half btn-stats" id="statsBtn">
-      <i data-lucide="bar-chart-2"></i>
+      <i data-lucide="chart-spline"></i>
     </button>
   </div>
 
@@ -1354,6 +1580,15 @@
     const avatarPickerOverlay = document.getElementById("avatarPickerOverlay");
     const avatarPickerButtons = document.querySelectorAll(".avatar-picker-btn");
    
+    const reminderChecklistItems = [
+      { id: "salmon", emoji: "🍣", label: "Lachsfilet" },
+      { id: "bread-1", emoji: "🍞", label: "2x Brot mit Belag (Frühstück)" },
+      { id: "soup", emoji: "🍲", label: "Mittagessen" },
+      { id: "bread-2", emoji: "🍞", label: "2x Brot mit Belag (Abendessen)" },
+      { id: "quark", emoji: "🥛", label: "2x Speisequark" }
+    ];
+    const reminderChecklistState = new Set();
+
     const isDesktopView = () => window.matchMedia("(min-width: 768px)").matches;
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -1471,6 +1706,10 @@
 
     let deleteTimeout = null;
     let deletePanelVisible = false;
+    const PERM_KEYS = {
+      notifications: "perm_notifications_asked_v1",
+      motion: "perm_motion_asked_v1"
+    };
 
     const cycleColors = [
       "#ef4444","#f97316","#f59e0b","#eab308","#84cc16","#22c55e",
@@ -1517,18 +1756,66 @@
       if (!Array.isArray(pool) || pool.length === 0) return "";
       return pool[Math.floor(Math.random() * pool.length)];
     }
+
+    async function requestNotificationPermissionOnce() {
+      if (!supportsPush) return;
+      if (localStorage.getItem(PERM_KEYS.notifications) === "1") {
+        await ensurePushInfoRow();
+        if (Notification.permission === "granted") {
+          await registerPushSubscription();
+        }
+        return;
+      }
+
+      const res = await Notification.requestPermission();
+      localStorage.setItem(PERM_KEYS.notifications, "1");
+      await ensurePushInfoRow();
+
+      if (res === "granted") {
+        await registerPushSubscription();
+      }
+    }
+
+    async function requestMotionPermissionOnce() {
+      if (localStorage.getItem(PERM_KEYS.motion) === "1") return;
+
+      if (typeof DeviceMotionEvent !== "undefined" &&
+          typeof DeviceMotionEvent.requestPermission === "function") {
+        await DeviceMotionEvent.requestPermission().catch(() => {});
+      }
+
+      localStorage.setItem(PERM_KEYS.motion, "1");
+    }
+
+    async function requestIntroPermissionsOnce() {
+      await requestNotificationPermissionOnce();
+      await requestMotionPermissionOnce();
+    }
+
+    function closeNotificationsPane() {
+      if (addBtnEl.dataset.mode !== "notifications") return;
+      addBtnEl.dataset.mode = "main";
+      const closeBtn = document.getElementById("reminderCloseBtn");
+      if (closeBtn) {
+        closeBtn.style.opacity = "0";
+        closeBtn.style.pointerEvents = "none";
+      }
+      gsap.to("#notificationsView", {
+        top: "100svh",
+        duration: 0.42,
+        ease: "power1.in",
+        delay: 0.4,
+        onStart: () => setLoginOrbsPaused(true),
+        onComplete: () => setLoginOrbsPaused(false)
+      });
+      refreshAddButtonIcon();
+    }
     
     addBtnEl.addEventListener("click", async () => {
 
       // --- Close Notifications ---
       if (addBtnEl.dataset.mode === "notifications") {
-        addBtnEl.dataset.mode = "main";
-        gsap.to("#notificationsView", {
-          top: "100svh",
-          duration: 0.42,
-          ease: "power1.in"
-        });
-        refreshAddButtonIcon();
+        closeNotificationsPane();
         return;
       }
 
@@ -1536,10 +1823,18 @@
       if (addBtnEl.dataset.mode === "stats") {
         addBtnEl.dataset.mode = "main";
         statsOpen = false;
+        const closeBtn = document.getElementById("reminderCloseBtn");
+        if (closeBtn) {
+          closeBtn.style.opacity = "0";
+          closeBtn.style.pointerEvents = "none";
+        }
         gsap.to("#statsView", {
           top: "100svh",
           duration: 0.42,
-          ease: "power1.in"
+          ease: "power1.in",
+          delay: 0.4,
+          onStart: () => setLoginOrbsPaused(true),
+          onComplete: () => setLoginOrbsPaused(false)
         });
         refreshAddButtonIcon();
         return;
@@ -1579,17 +1874,12 @@
     
     bellBtnEl.addEventListener("click", async () => {
 
-      // iOS/PWA requirement: permission request must be user-triggered
-      if (supportsPush && Notification.permission === "default") {
-        const res = await Notification.requestPermission();
+      // keep DB in sync even if already decided
+      if (supportsPush) {
         await ensurePushInfoRow();
-
-        if (res === "granted") {
+        if (Notification.permission === "granted") {
           await registerPushSubscription();
         }
-      } else {
-        // keep DB in sync even if already decided
-        await ensurePushInfoRow();
       }
 
       // Update badge before opening
@@ -1602,17 +1892,43 @@
       statsOpen = false;
       addBtnEl.dataset.mode = "notifications";
 
-      gsap.to("#notificationsView", {
-        top: "0svh",
-        duration: 0.42,
-        ease: "power1.out"
-      });
+      if (isDesktopView()) {
+        gsap.to("#notificationsView", {
+          top: "0svh",
+          duration: 0.42,
+          ease: "power1.out",
+          delay: 0.4,
+          onStart: () => setLoginOrbsPaused(true),
+          onComplete: () => setLoginOrbsPaused(false)
+        });
+        gsap.to("#statsView", {
+          top: "100svh",
+          duration: 0.42,
+          ease: "power1.in",
+          delay: 0.4
+        });
+      } else {
+        gsap.to("#notificationsView", {
+          top: "0svh",
+          duration: 0.42,
+          ease: "power1.out",
+          delay: 0.4,
+          onStart: () => setLoginOrbsPaused(true),
+          onComplete: () => setLoginOrbsPaused(false)
+        });
+        gsap.to("#statsView", {
+          top: "100svh",
+          duration: 0.42,
+          ease: "power1.in",
+          delay: 0.4
+        });
+      }
 
-      gsap.to("#statsView", {
-        top: "100svh",
-        duration: 0.42,
-        ease: "power1.in"
-      });
+      const closeBtn = document.getElementById("reminderCloseBtn");
+      if (closeBtn) {
+        closeBtn.style.opacity = "1";
+        closeBtn.style.pointerEvents = "auto";
+      }
 
       refreshAddButtonIcon();
 
@@ -1625,11 +1941,7 @@
     if (remindersDesktopBtn) {
       remindersDesktopBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
-        if (isDesktopView()) {
-          await toggleDesktopReminderPopover();
-        } else {
-          bellBtnEl.click();
-        }
+        bellBtnEl.click();
       });
     }
 
@@ -1696,12 +2008,31 @@
     function startLoginCircleFloat() {
       if (!document.getElementById("loginCircle")) return;
       gsap.to("#loginCircle", {
-        y: -6,
-        duration: 2.4,
+        y: -10,
+        x: 2,
+        duration: 2.8,
         repeat: -1,
         yoyo: true,
         ease: "sine.inOut"
       });
+    }
+
+    function updateLoginOrbsFromHabits() {
+      const layer = document.getElementById("loginOrbLayer");
+      if (!layer) return;
+      const orbs = layer.querySelectorAll(".login-orb");
+      const fallbackColors = ["#ff2d55", "#34c759", "#0a84ff"];
+      orbs.forEach((orb, idx) => {
+        const color = habits[idx % 3]?.color || fallbackColors[idx % 3] || "#ffffff";
+        orb.style.background = color;
+      });
+      requestAnimationFrame(() => {
+        layer.style.opacity = "1";
+      });
+    }
+
+    function setLoginOrbsPaused(isPaused) {
+      document.body.classList.toggle("login-orbs-paused", !!isPaused);
     }
 
     function escapeHtml(value) {
@@ -1749,6 +2080,7 @@
       });
     }
 
+
     function launchIntroConfetti() {
       if (!introConfetti || !introProgressScreen) return;
       introConfetti.innerHTML = "";
@@ -1783,6 +2115,7 @@
       }
 
       introFlowDone = false;
+      updateLoginOrbsFromHabits();
       const ringData = getIntroRingData();
       const allComplete = ringData.every(item => item.goal > 0 && item.progress >= item.goal);
       const streakValue = currentUser ? await loadStreakForUser(currentUser.id) : 0;
@@ -1890,6 +2223,7 @@
     
 
     function showAppAfterDataLoaded() {
+      updateLoginOrbsFromHabits();
       appPage.style.display = "block";
       gsap.fromTo(appPage, { opacity:0 }, {
         opacity:1,
@@ -1923,6 +2257,7 @@
     async function proceedAfterIntro() {
       if (introFlowDone) return;
       introFlowDone = true;
+      await requestIntroPermissionsOnce();
       showAppAfterDataLoaded();
       await ensureDesktopStats();
       await ensureAvatarSelected();
@@ -2145,6 +2480,7 @@ forgotPw.onclick = () => {
       setupShakeDetection();
 
       await checkStreakResetGate();
+      await checkReminderResetDaily();
       await safeLoadHabits();
       const subline = document.getElementById("loginSubline");
       if (subline) subline.style.display = "none";
@@ -2166,6 +2502,7 @@ forgotPw.onclick = () => {
         setupShakeDetection();
 
         await checkStreakResetGate();
+        await checkReminderResetDaily();
         await safeLoadHabits();
         await showIntroProgressScreen();
       } else {
@@ -2261,13 +2598,13 @@ forgotPw.onclick = () => {
       const addBtn = addBtnEl;
 
       if (addBtn.dataset.mode === "notifications") {
-        addBtn.innerHTML = '<i data-lucide="house"></i>';
+        addBtn.innerHTML = '<i data-lucide="house-heart"></i>';
         lucide.createIcons();
         return;
       }
 
       if (addBtn.dataset.mode === "stats") {
-        addBtn.innerHTML = '<i data-lucide="house"></i>';
+        addBtn.innerHTML = '<i data-lucide="house-heart"></i>';
         lucide.createIcons();
         return;
       }
@@ -2275,7 +2612,7 @@ forgotPw.onclick = () => {
       if (habits.length < 3) {
         addBtn.innerHTML = '<i data-lucide="plus"></i>';
       } else {
-        addBtn.innerHTML = '<i data-lucide="home"></i>';
+        addBtn.innerHTML = '<i data-lucide="house-heart"></i>';
       }
 
       lucide.createIcons();
@@ -2424,9 +2761,7 @@ forgotPw.onclick = () => {
     function refreshBellIcon() {
       if (!bellBtnEl) return;
 
-      // bell-dot if unread notifications exist
-      const hasUnread = (unreadNotificationCount || 0) > 0;
-      const icon = hasUnread ? "bell-dot" : "bell";
+      const icon = "cookie";
 
       bellBtnEl.innerHTML = `<i data-lucide="${icon}"></i>`;
       lucide.createIcons({ scope: bellBtnEl });
@@ -2436,13 +2771,6 @@ forgotPw.onclick = () => {
         lucide.createIcons({ scope: remindersDesktopBtn });
       }
 
-      // shake bell until permission is granted (only if supported)
-      const perm = (window.Notification && Notification.permission) ? Notification.permission : "denied";
-      if (supportsPush && perm !== "granted") {
-        bellBtnEl.classList.add("bell-shake");
-      } else {
-        bellBtnEl.classList.remove("bell-shake");
-      }
     }
 
     async function toggleDesktopReminderPopover() {
@@ -3859,6 +4187,54 @@ forgotPw.onclick = () => {
     }
   }
 
+  async function checkReminderResetDaily() {
+    const day = getLocalDateString();
+    const { error } = await supabaseClient.rpc("check_reminder_reset_daily", {
+      current_day: day
+    });
+
+    if (error) {
+      console.error("checkReminderResetDaily rpc error:", error);
+    }
+  }
+
+  async function loadReminderClicksForDay(uid) {
+    if (!uid) return;
+    const day = getLocalDateString();
+    const { data, error } = await supabaseClient
+      .from("reminder_clicks")
+      .select("position_id")
+      .eq("user_id", uid)
+      .eq("day", day);
+
+    if (error) {
+      console.error("loadReminderClicksForDay error:", error);
+      return;
+    }
+
+    reminderChecklistState.clear();
+    (data || []).forEach(row => {
+      if (row?.position_id) reminderChecklistState.add(row.position_id);
+    });
+  }
+
+  async function loadReminderClickCountForDay(uid) {
+    if (!uid) return 0;
+    const day = getLocalDateString();
+    const { count, error } = await supabaseClient
+      .from("reminder_clicks")
+      .select("position_id", { count: "exact", head: true })
+      .eq("user_id", uid)
+      .eq("day", day);
+
+    if (error) {
+      console.error("loadReminderClickCountForDay error:", error);
+      return 0;
+    }
+
+    return count || 0;
+  }
+
   async function syncHabitDayForProgress(habitId, progress) {
     if (!habitId) return;
     const day = getLocalDateString();
@@ -4149,49 +4525,97 @@ forgotPw.onclick = () => {
 
       return data?.current_streak ?? 0;
     }
+
+    function updateReminderCompletion() {
+      if (!notificationsViewEl) return;
+      const statusEl = notificationsViewEl.querySelector("#reminderStatus");
+      if (!statusEl) return;
+      const isComplete = reminderChecklistItems.every(item => reminderChecklistState.has(item.id));
+      statusEl.classList.toggle("is-complete", isComplete);
+    }
     
     async function renderNotifications() {
-      const rows = await loadNotifications(30);
-      const updateNoticeVersion = localStorage.getItem("update_notice_version");
-      const updateNoticeHtml = updateNoticeVersion
-        ? `
-          <div class="notification-item">
-            <div style="font-weight:800; margin-bottom:4px;">Update installiert</div>
-            <div style="font-weight:600;">Version ${updateNoticeVersion} wurde installiert.</div>
-          </div>
-        `
-        : "";
-      if (updateNoticeVersion) localStorage.removeItem("update_notice_version");
+      if (currentUser?.id) {
+        await checkReminderResetDaily();
+        await loadReminderClicksForDay(currentUser.id);
+      }
 
-      const itemsHtml = (rows.length > 0)
-        ? rows.map(r => {
-            const isUnread = !r.read_at;
-            const title = (r.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            const body = (r.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            const opacity = isUnread ? 1 : 0.55;
-            return `
-              <div class="notification-item" style="opacity:${opacity};">
-                <div style="font-weight:800; margin-bottom:4px;">${title}</div>
-                <div style="font-weight:600;">${body}</div>
-              </div>
-            `;
-          }).join("")
-        : `
-          <div class="notification-item">
-            <div style="font-weight:800; margin-bottom:4px;">Willkommen</div>
-            <div style="font-weight:600;">Hier erscheinen bald echte Benachrichtigungen.</div>
-          </div>
-          <div class="notification-item">
-            <div style="font-weight:800; margin-bottom:4px;">Tipp</div>
-            <div style="font-weight:600;">Du kannst später Push-Aktionen aus deinen Workflows auslösen.</div>
-          </div>
-        `;
+      const itemsHtml = reminderChecklistItems.map(item => `
+        <button class="reminder-item${reminderChecklistState.has(item.id) ? " is-selected" : ""}" data-reminder-id="${item.id}" type="button">
+          <span class="reminder-emoji">${item.emoji}</span>
+          <span class="reminder-text">${item.label}</span>
+        </button>
+      `).join("");
+
+      const isComplete = reminderChecklistItems.every(item => reminderChecklistState.has(item.id));
 
       notificationsViewEl.innerHTML = `
-        <div class="notification-title">Reminders</div>
-        ${updateNoticeHtml}
-        ${itemsHtml}
+        <div class="reminder-pane">
+          <div class="reminder-header">
+            <button class="reminder-close" id="reminderCloseBtn" aria-label="Schließen">
+              <i data-lucide="x"></i>
+            </button>
+            <div class="reminder-status${isComplete ? " is-complete" : ""}" id="reminderStatus">
+              <i data-lucide="check-circle"></i>
+              <div class="reminder-status-title">Heute alles erledigt</div>
+            </div>
+          </div>
+          <div class="reminder-list" id="reminderList">
+            ${itemsHtml}
+          </div>
+        </div>
       `;
+
+      const reminderList = notificationsViewEl.querySelector("#reminderList");
+      if (reminderList) {
+        reminderList.querySelectorAll(".reminder-item").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.reminderId;
+            if (!id) return;
+            if (reminderChecklistState.has(id)) {
+              reminderChecklistState.delete(id);
+              btn.classList.toggle("is-selected");
+              updateReminderCompletion();
+              if (currentUser?.id) {
+                const day = getLocalDateString();
+                supabaseClient
+                  .from("reminder_clicks")
+                  .delete()
+                  .eq("user_id", currentUser.id)
+                  .eq("day", day)
+                  .eq("position_id", id)
+                  .then(({ error }) => {
+                    if (error) console.error("reminder_clicks delete error:", error);
+                  });
+              }
+              return;
+            }
+
+            reminderChecklistState.add(id);
+            btn.classList.toggle("is-selected");
+            updateReminderCompletion();
+            if (currentUser?.id) {
+              const day = getLocalDateString();
+              supabaseClient
+                .from("reminder_clicks")
+                .upsert(
+                  { user_id: currentUser.id, day, position_id: id },
+                  { onConflict: "user_id,day,position_id" }
+                )
+                .then(({ error }) => {
+                  if (error) console.error("reminder_clicks upsert error:", error);
+                });
+            }
+          });
+        });
+      }
+
+      const closeBtn = notificationsViewEl.querySelector("#reminderCloseBtn");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+          closeNotificationsPane();
+        });
+      }
     }
 
     async function renderStats(myHabits, otherHabits, otherUserData) {
@@ -4259,6 +4683,41 @@ forgotPw.onclick = () => {
       `;
 
       html += barsHtml(myHabits, "my");
+
+      const reminderClicksCount = await loadReminderClickCountForDay(currentUser.id);
+      if (reminderClicksCount > 0) {
+        const reminderTotal = reminderChecklistItems.length || 1;
+        const reminderPercent = Math.min(100, Math.round((reminderClicksCount / reminderTotal) * 100));
+        html += `
+          <div class="stat-item">
+            <div class="stat-bar" style="position:relative;">
+              <div class="stat-progress" data-progress="${reminderPercent}" style="
+                position:absolute;
+                inset:0;
+                width:0%;
+                background:#8bb6ff;
+                border-radius:16px;
+                z-index:1;
+              "></div>
+              <div style="
+                position:relative;
+                z-index:2;
+                height:100%;
+                display:flex;
+                align-items:center;
+                padding-left:12px;
+                font-weight:700;
+                color:var(--c-text);
+                white-space:nowrap;
+                overflow:hidden;
+                text-overflow:ellipsis;
+              ">
+                <i data-lucide="cookie"></i>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       // === Optional: anderer User ===
       if (otherUserData) {
@@ -4412,10 +4871,18 @@ forgotPw.onclick = () => {
     statsBtnEl.addEventListener("click", async () => {
 
       // Close notifications if open
+      const closeBtn = document.getElementById("reminderCloseBtn");
+      if (closeBtn) {
+        closeBtn.style.opacity = "0";
+        closeBtn.style.pointerEvents = "none";
+      }
       gsap.to("#notificationsView", {
         top: "100svh",
         duration: 0.42,
-        ease: "power1.in"
+        ease: "power1.in",
+        delay: 0.4,
+        onStart: () => setLoginOrbsPaused(true),
+        onComplete: () => setLoginOrbsPaused(false)
       });
 
       addBtnEl.dataset.mode = "stats";
@@ -4439,7 +4906,10 @@ forgotPw.onclick = () => {
       gsap.to("#statsView", {
         top: "0svh",
         duration: 0.42,
-        ease: "power1.out"
+        ease: "power1.out",
+        delay: 0.4,
+        onStart: () => setLoginOrbsPaused(true),
+        onComplete: () => setLoginOrbsPaused(false)
       });
 
       refreshAddButtonIcon();
@@ -4453,15 +4923,6 @@ forgotPw.onclick = () => {
   function setupShakeDetection() {
     if (typeof window === "undefined") return;
     if (!("DeviceMotionEvent" in window)) return;
-
-    if (typeof DeviceMotionEvent !== "undefined" &&
-        typeof DeviceMotionEvent.requestPermission === "function") {
-      document.body.addEventListener("click", function reqOnce() {
-        DeviceMotionEvent.requestPermission().catch(()=>{}).finally(()=>{
-          document.body.removeEventListener("click", reqOnce);
-        });
-      });
-    }
 
     window.addEventListener("devicemotion", handleDeviceMotion, false);
   }
@@ -4626,25 +5087,7 @@ forgotPw.onclick = () => {
       progress = 0  => inaktiv
   */
     
-    async function requestAllPermissions() {
-      // Notifications
-      if (Notification.permission !== "granted") {
-        await Notification.requestPermission();
-      }
-
-      // Motion
-      if (typeof DeviceMotionEvent !== "undefined" &&
-          typeof DeviceMotionEvent.requestPermission === "function") {
-        await DeviceMotionEvent.requestPermission().catch(()=>{});
-      }
-
-      // Geo
-      navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {
-        enableHighAccuracy: true
-      });
-    }
-
-    // requestAllPermissions();   // Removed as per instructions
+    // requestAllPermissions removed: permissions are now requested via intro flow only.
     
     function urlBase64ToUint8Array(base64String) {
       const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -4683,10 +5126,7 @@ forgotPw.onclick = () => {
       if (error) console.error("push subscribe error", error);
     }
     
-     (async () => {
-        await requestAllPermissions();
-      await subscribeUserToPush();
-    })();
+     // Auto permission + push subscribe removed; handled in intro flow.
     
     function getQRParam() {
       const params = new URLSearchParams(window.location.search);
@@ -5020,14 +5460,8 @@ if ("serviceWorker" in navigator) {
     function setupPushRealtime() {
       if (!currentUser) return;
 
-      // Ensure permission
       if (Notification.permission !== "granted") {
-        Notification.requestPermission().then(res => {
-          if (res !== "granted") {
-            console.warn("Notifications not granted");
-            return;
-          }
-        });
+        return;
       }
 
       supabaseClient
@@ -5076,6 +5510,8 @@ if ("serviceWorker" in navigator) {
 
             const data = payload.new;
             if (!data) return;
+
+            if (Notification.permission !== "granted") return;
 
             try {
               new Notification(data.title || "Neue Nachricht", {
