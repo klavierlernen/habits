@@ -1675,6 +1675,41 @@
       "https://raw.githubusercontent.com/lillyapp/lillyapp/main/avatar03.png"
     ];
 
+    function isSpeisequarkTitle(title) {
+      return typeof title === "string" && title.toLowerCase().includes("speisequark");
+    }
+
+    function enforceSpeisequarkGoal(card, title) {
+      if (!card || card.dataset.qr === "true") return false;
+      if (!isSpeisequarkTitle(title)) return false;
+
+      let changed = false;
+      let progress = parseInt(card.dataset.progress) || 0;
+      const goal = parseInt(card.dataset.goal) || 0;
+
+      if (goal !== 2) {
+        card.dataset.goal = 2;
+        changed = true;
+      }
+
+      if (progress > 2) {
+        progress = 2;
+        card.dataset.progress = 2;
+        changed = true;
+      }
+
+      const numArea = card.querySelector("#numArea");
+      if (numArea) numArea.textContent = "2";
+
+      const counter = card.querySelector(".counter");
+      if (counter) {
+        counter.style.display = "block";
+        counter.textContent = progress + "/2";
+      }
+
+      return changed;
+    }
+
     function getAvatarUrl(userData) {
       return userData?.avatar_url || avatarOptions[0];
     }
@@ -2831,13 +2866,17 @@ forgotPw.onclick = () => {
       card.className = "card";
 
       const rawGoal   = habit.goal;
-      const goal      = (rawGoal === null || rawGoal === undefined) ? 1 : rawGoal;
+      let goal      = (rawGoal === null || rawGoal === undefined) ? 1 : rawGoal;
       const progress  = parseInt(habit.progress) || 0;
       const dbColor   = habit.color || "#e4e4e4";
       const addr      = habit.location_address || "";
       const qrEnabled = habit.qr_enabled || false;
       const lastScanned = habit.last_scanned || null;
       const scannedToday = isToday(lastScanned);
+
+      if (!qrEnabled && isSpeisequarkTitle(habit.title)) {
+        goal = 2;
+      }
 
       card.dataset.index    = index;
       card.dataset.habitId  = habit.id;
@@ -2996,6 +3035,8 @@ forgotPw.onclick = () => {
         counter.style.display = "none";
       }
 
+      const enforced = enforceSpeisequarkGoal(card, input.textContent);
+
       // === Farben ===
       const progValue = parseInt(progress) || 0;
 
@@ -3026,6 +3067,10 @@ forgotPw.onclick = () => {
       }
       
       attachCardLogic(card);
+
+      if (enforced) {
+        saveHabit(card);
+      }
     }
 
     function shake(card) {
@@ -3104,6 +3149,10 @@ forgotPw.onclick = () => {
 
         // QR-Mode deaktiviert die Goal-Änderung
         if (card.dataset.qr === "true") return;
+        if (isSpeisequarkTitle(input.textContent)) {
+          numArea.textContent = "2";
+          return;
+        }
 
         let y = parseInt(card.dataset.goal) || 0;
         y = (y + 1) % 8;
@@ -3844,6 +3893,8 @@ forgotPw.onclick = () => {
         return;
       }
 
+      enforceSpeisequarkGoal(card, input.textContent);
+
       let goal     = parseInt(card.dataset.goal) || 0;
       let progress = parseInt(card.dataset.progress) || 0;
       let active   = card.dataset.active === "true";
@@ -3954,10 +4005,15 @@ forgotPw.onclick = () => {
       const input   = card.querySelector(".card-input");
       const title = input.textContent.trim();
       const color   = card.dataset.color || "#e4e4e4";
-      const progress  = parseInt(card.dataset.progress) || 0;
-      const goal     = parseInt(card.dataset.goal)     || 0;
+      let progress  = parseInt(card.dataset.progress) || 0;
+      let goal     = parseInt(card.dataset.goal)     || 0;
 
       if (!habitId) return;
+
+      if (enforceSpeisequarkGoal(card, title)) {
+        progress = parseInt(card.dataset.progress) || 0;
+        goal = parseInt(card.dataset.goal) || 0;
+      }
 
       // collect up to 3 subtasks from the DOM
       const rows = card.querySelectorAll('.subtask');
