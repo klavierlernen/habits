@@ -28,6 +28,9 @@
     :root {
       --page-padding: 16px;
       --card-height: calc((100svh - 16px*5 - 60px - env(safe-area-inset-bottom)) / 3);
+      --stats-name-size: 1.8rem;
+      --stats-streak-size: 1.8rem;
+      --stats-avatar-size: 38px;
     }
       
       :root {
@@ -714,6 +717,12 @@
     }
 
     @media (min-width: 768px) {
+      :root {
+        --stats-name-size: 1.6rem;
+        --stats-streak-size: 1.6rem;
+        --stats-avatar-size: 32px;
+      }
+
       #appPage {
         padding:32px 24px;
       }
@@ -876,16 +885,16 @@
       }
 
       .stats-name {
-        font-size:1.7rem;
+        font-size:var(--stats-name-size);
       }
 
       .stats-avatar {
-        width:32px;
-        height:32px;
+        width:var(--stats-avatar-size);
+        height:var(--stats-avatar-size);
       }
 
       .stat-bar {
-        height:42px;
+        height:48px;
       }
 
       .stat-calendar {
@@ -934,10 +943,93 @@
       z-index:50;
     }
 
-    .stats-name { font-size:2rem; font-weight:800; margin-bottom:20px; }
+    .stats-name { font-size:var(--stats-name-size); font-weight:800; margin-bottom:20px; }
+    .stats-streak {
+      display:flex;
+      align-items:flex-end;
+      gap:6px;
+      font-size:var(--stats-streak-size);
+      font-weight:700;
+      line-height:1;
+    }
+    .stats-streak-icon {
+      width:0.9em;
+      height:0.9em;
+    }
     .stat-item { margin-bottom:18px; }
-    .stat-bar { width:100%; height:48px; background: var(--c-card); border-radius:16px; overflow:hidden; }
+    .stat-bar {
+      width:100%;
+      height:56px;
+      background: transparent;
+      border-radius:16px;
+      overflow:hidden;
+      padding:6px;
+      box-sizing:border-box;
+    }
     .stat-bar.is-clickable { cursor:pointer; }
+    .stat-bar[data-owner="other"] .stat-icon-btn { cursor:default; }
+    .stat-bar[data-owner="other"] .stat-icon-options { display:none; }
+    .stat-bar-inner {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      height:100%;
+    }
+    .stat-icon-btn,
+    .stat-icon-option {
+      width:32px;
+      height:32px;
+      border-radius:10px;
+      border:none;
+      background:transparent;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--c-text);
+      cursor:pointer;
+      flex:0 0 auto;
+    }
+    .stat-icon-btn i,
+    .stat-icon-option i {
+      width:18px;
+      height:18px;
+    }
+    .stat-icon-options {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      width:0;
+      opacity:0;
+      overflow:hidden;
+      pointer-events:none;
+      transition:width 0.18s ease, opacity 0.18s ease;
+    }
+    .stat-bar.is-icon-open .stat-icon-options {
+      width:76px;
+      opacity:1;
+      pointer-events:auto;
+    }
+    .stat-bar-track {
+      position:relative;
+      flex:1;
+      height:100%;
+      border-radius:12px;
+      overflow:hidden;
+      background: var(--c-card);
+    }
+    .stat-bar-label {
+      position:relative;
+      z-index:2;
+      height:100%;
+      display:flex;
+      align-items:center;
+      padding-left:12px;
+      font-weight:700;
+      color:var(--c-text);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
     .stat-fill {
       height:100%;
       width:0;
@@ -1036,8 +1128,8 @@
     }
 
     .stats-avatar {
-      width:36px;
-      height:36px;
+      width:var(--stats-avatar-size);
+      height:var(--stats-avatar-size);
       border-radius:999px;
       object-fit:cover;
       flex-shrink:0;
@@ -1268,9 +1360,22 @@
         opacity: 1;
       }
 
+      .reminder-item.is-partial {
+        color: var(--c-text);
+        opacity: 0.8;
+      }
+
       .reminder-emoji {
         font-size: 1.35rem;
         line-height: 1;
+      }
+
+      .reminder-count {
+        margin-left: auto;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        opacity: 0.8;
       }
 
       .notification-title {
@@ -1579,20 +1684,36 @@
     const logoutDesktopBtn = document.getElementById("logoutDesktopBtn");
     const avatarPickerOverlay = document.getElementById("avatarPickerOverlay");
     const avatarPickerButtons = document.querySelectorAll(".avatar-picker-btn");
+
+    const loginHeadlineMessages = [
+      "Wie motiviert bist du heute?",
+      "Großartiges steht dir bevor ...",
+      "Heute wird ein guter Tag.",
+      "Kleine Schritte, große Wirkung.",
+      "Bereit für deinen nächsten Schritt?",
+      "Zeit für ein bisschen Fortschritt.",
+      "Du bist näher dran, als du denkst."
+    ];
    
     const reminderChecklistItems = [
       { id: "salmon", emoji: "🍣", label: "Lachsfilet" },
       { id: "bread-1", emoji: "🍞", label: "2x Brot mit Belag (Frühstück)" },
       { id: "soup", emoji: "🍲", label: "Mittagessen" },
       { id: "bread-2", emoji: "🍞", label: "2x Brot mit Belag (Abendessen)" },
-      { id: "quark", emoji: "🥛", label: "2x Speisequark" },
+      { id: "quark", emoji: "🥛", label: "Speisequark", target: 2, dbIds: ["quark", "quark-2"] },
       { id: "creatine", emoji: "🍚", label: "5g Kreatin" }
     ];
     const reminderChecklistState = new Set();
+    const HABIT_ICON_TYPES = ["brain", "dumbbell", "shapes"];
 
     const isDesktopView = () => window.matchMedia("(min-width: 768px)").matches;
 
   document.addEventListener("DOMContentLoaded", () => {
+    if (loginHeadlineMessages.length && loginHeadline) {
+      const idx = Math.floor(Math.random() * loginHeadlineMessages.length);
+      loginHeadline.textContent = loginHeadlineMessages[idx];
+    }
+
     function detectFont(fontName) {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -1674,6 +1795,45 @@
       "https://raw.githubusercontent.com/lillyapp/lillyapp/main/avatar02.png",
       "https://raw.githubusercontent.com/lillyapp/lillyapp/main/avatar03.png"
     ];
+
+    function isSpeisequarkTitle(title) {
+      return typeof title === "string" && title.toLowerCase().includes("speisequark");
+    }
+
+    function normalizeHabitIcon(iconType) {
+      return HABIT_ICON_TYPES.includes(iconType) ? iconType : "brain";
+    }
+
+    function enforceSpeisequarkGoal(card, title) {
+      if (!card || card.dataset.qr === "true") return false;
+      if (!isSpeisequarkTitle(title)) return false;
+
+      let changed = false;
+      let progress = parseInt(card.dataset.progress) || 0;
+      const goal = parseInt(card.dataset.goal) || 0;
+
+      if (goal !== 2) {
+        card.dataset.goal = 2;
+        changed = true;
+      }
+
+      if (progress > 2) {
+        progress = 2;
+        card.dataset.progress = 2;
+        changed = true;
+      }
+
+      const numArea = card.querySelector("#numArea");
+      if (numArea) numArea.textContent = "2";
+
+      const counter = card.querySelector(".counter");
+      if (counter) {
+        counter.style.display = "block";
+        counter.textContent = progress + "/2";
+      }
+
+      return changed;
+    }
 
     function getAvatarUrl(userData) {
       return userData?.avatar_url || avatarOptions[0];
@@ -1858,7 +2018,8 @@
           color: "#e4e4e4",
           progress: 0,
           goal: 1,
-          appear_once: false
+          appear_once: false,
+          icon_type: "brain"
         })
         .select()
         .single();
@@ -2006,18 +2167,6 @@
       return `rgb(${r},${g},${b})`;
     }
 
-    function startLoginCircleFloat() {
-      if (!document.getElementById("loginCircle")) return;
-      gsap.to("#loginCircle", {
-        y: -10,
-        x: 2,
-        duration: 2.8,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut"
-      });
-    }
-
     function updateLoginOrbsFromHabits() {
       const layer = document.getElementById("loginOrbLayer");
       if (!layer) return;
@@ -2068,16 +2217,7 @@
         const circumference = 2 * Math.PI * r;
         ring.style.stroke = color || "#ffffff";
         ring.style.strokeDasharray = `${circumference}`;
-        gsap.fromTo(
-          ring,
-          { strokeDashoffset: circumference },
-          {
-            strokeDashoffset: circumference * (1 - pct),
-            duration: 1.2,
-            ease: "power2.out",
-            delay: 0.15 + idx * 0.12
-          }
-        );
+        ring.style.strokeDashoffset = `${circumference * (1 - pct)}`;
       });
     }
 
@@ -2190,24 +2330,13 @@
         introProgressMessage.innerHTML = `Du hast diesen Monat ${parts.join(", ")} erledigt. Man merkt schon fast Konsistenz.${compareHtml}`;
         if (compareShouldUnderline) {
           const underlineEl = introProgressMessage.querySelector(".intro-compare-underline");
-          if (underlineEl) {
-            gsap.fromTo(underlineEl, { scaleX: 0 }, {
-              scaleX: 1,
-              duration: 0.6,
-              ease: "power2.out",
-              delay: 0.5
-            });
-          }
+          if (underlineEl) underlineEl.style.transform = "scaleX(1)";
         }
       }
 
       introProgressScreen.style.display = "flex";
       introProgressScreen.setAttribute("aria-hidden", "false");
-      gsap.fromTo(introProgressScreen, { opacity: 0 }, {
-        opacity: 1,
-        duration: 0.4,
-        ease: "sine.inOut"
-      });
+      introProgressScreen.style.opacity = "1";
 
       if (loginScreen && loginScreen.style.display !== "none") {
         gsap.to(loginScreen, {
@@ -2219,7 +2348,6 @@
       }
 
       animateIntroRings(ringData);
-      if (allComplete) launchIntroConfetti();
     }
     
 
@@ -2546,7 +2674,7 @@ forgotPw.onclick = () => {
 
       const { data, error } = await supabaseClient
         .from("habits")
-        .select(`id, user_id, title, color, progress, goal, location_address, qr_enabled, sub1_title, sub1_progress, sub2_title, sub2_progress, sub3_title, sub3_progress, inserted_at`)
+        .select(`id, user_id, title, color, progress, goal, icon_type, location_address, qr_enabled, sub1_title, sub1_progress, sub2_title, sub2_progress, sub3_title, sub3_progress, inserted_at`)
         .eq("user_id", currentUser.id)
         .order("inserted_at", { ascending: true })
         .limit(3);
@@ -2584,7 +2712,8 @@ forgotPw.onclick = () => {
         color: "#e4e4e4",
         progress: 0,
         goal: 1,
-        appear_once: false
+        appear_once: false,
+        icon_type: "brain"
       }));
 
       const { error } = await supabaseClient.from("habits").insert(inserts);
@@ -2831,19 +2960,25 @@ forgotPw.onclick = () => {
       card.className = "card";
 
       const rawGoal   = habit.goal;
-      const goal      = (rawGoal === null || rawGoal === undefined) ? 1 : rawGoal;
+      let goal      = (rawGoal === null || rawGoal === undefined) ? 1 : rawGoal;
       const progress  = parseInt(habit.progress) || 0;
       const dbColor   = habit.color || "#e4e4e4";
       const addr      = habit.location_address || "";
       const qrEnabled = habit.qr_enabled || false;
       const lastScanned = habit.last_scanned || null;
       const scannedToday = isToday(lastScanned);
+      const iconType = normalizeHabitIcon(habit.icon_type);
+
+      if (!qrEnabled && isSpeisequarkTitle(habit.title)) {
+        goal = 2;
+      }
 
       card.dataset.index    = index;
       card.dataset.habitId  = habit.id;
       card.dataset.goal     = goal;
       card.dataset.progress = progress;
       card.dataset.color    = dbColor;
+      card.dataset.iconType = iconType;
       card.dataset.location = addr;
       card.dataset.qr       = qrEnabled ? "true" : "false";
       // subtask data (persisted columns)
@@ -2996,6 +3131,8 @@ forgotPw.onclick = () => {
         counter.style.display = "none";
       }
 
+      const enforced = enforceSpeisequarkGoal(card, input.textContent);
+
       // === Farben ===
       const progValue = parseInt(progress) || 0;
 
@@ -3026,6 +3163,10 @@ forgotPw.onclick = () => {
       }
       
       attachCardLogic(card);
+
+      if (enforced) {
+        saveHabit(card);
+      }
     }
 
     function shake(card) {
@@ -3104,6 +3245,10 @@ forgotPw.onclick = () => {
 
         // QR-Mode deaktiviert die Goal-Änderung
         if (card.dataset.qr === "true") return;
+        if (isSpeisequarkTitle(input.textContent)) {
+          numArea.textContent = "2";
+          return;
+        }
 
         let y = parseInt(card.dataset.goal) || 0;
         y = (y + 1) % 8;
@@ -3844,6 +3989,8 @@ forgotPw.onclick = () => {
         return;
       }
 
+      enforceSpeisequarkGoal(card, input.textContent);
+
       let goal     = parseInt(card.dataset.goal) || 0;
       let progress = parseInt(card.dataset.progress) || 0;
       let active   = card.dataset.active === "true";
@@ -3954,10 +4101,15 @@ forgotPw.onclick = () => {
       const input   = card.querySelector(".card-input");
       const title = input.textContent.trim();
       const color   = card.dataset.color || "#e4e4e4";
-      const progress  = parseInt(card.dataset.progress) || 0;
-      const goal     = parseInt(card.dataset.goal)     || 0;
+      let progress  = parseInt(card.dataset.progress) || 0;
+      let goal     = parseInt(card.dataset.goal)     || 0;
 
       if (!habitId) return;
+
+      if (enforceSpeisequarkGoal(card, title)) {
+        progress = parseInt(card.dataset.progress) || 0;
+        goal = parseInt(card.dataset.goal) || 0;
+      }
 
       // collect up to 3 subtasks from the DOM
       const rows = card.querySelectorAll('.subtask');
@@ -4016,7 +4168,8 @@ forgotPw.onclick = () => {
           color: "#e4e4e4",
           progress: 0,
           goal: 1,
-          appear_once: false
+          appear_once: false,
+          icon_type: "brain"
         })
         .select()
         .single();
@@ -4052,7 +4205,7 @@ forgotPw.onclick = () => {
   async function loadHabitsForUser(userId) {
     const { data, error } = await supabaseClient
       .from("habits")
-      .select(`id, user_id, title, color, progress, goal, location_address, qr_enabled, sub1_title, sub1_progress, sub2_title, sub2_progress, sub3_title, sub3_progress, inserted_at`)
+      .select(`id, user_id, title, color, progress, goal, icon_type, location_address, qr_enabled, sub1_title, sub1_progress, sub2_title, sub2_progress, sub3_title, sub3_progress, inserted_at`)
       .eq("user_id", userId)
       .order("inserted_at", { ascending: true })
       .limit(3);
@@ -4071,6 +4224,7 @@ forgotPw.onclick = () => {
     otherHabits: [],
     otherUserId: null
   };
+  let iconPickerTimer = null;
 
   async function checkForAppUpdate() {
     try {
@@ -4402,7 +4556,11 @@ forgotPw.onclick = () => {
   function setupStatCalendarInteractions() {
     const bars = statsViewEl.querySelectorAll(".stat-bar.is-clickable");
     bars.forEach(bar => {
-      bar.addEventListener("click", () => {
+      bar.addEventListener("click", (e) => {
+        if (e && (e.target.closest(".stat-icon-btn") || e.target.closest(".stat-icon-options"))) {
+          return;
+        }
+        closeAllStatIconPickers();
         const parent = bar.closest(".stat-item");
         const calendar = parent ? parent.querySelector(".stat-calendar") : null;
         if (!calendar) return;
@@ -4426,18 +4584,145 @@ forgotPw.onclick = () => {
     });
   }
 
+  function closeAllStatIconPickers(exceptBar = null) {
+    if (!statsViewEl) return;
+    const openBars = statsViewEl.querySelectorAll(".stat-bar.is-icon-open");
+    openBars.forEach(bar => {
+      if (exceptBar && bar === exceptBar) return;
+      bar.classList.remove("is-icon-open");
+      const opts = bar.querySelector(".stat-icon-options");
+      if (opts) opts.setAttribute("aria-hidden", "true");
+    });
+    if (!exceptBar && iconPickerTimer) {
+      clearTimeout(iconPickerTimer);
+      iconPickerTimer = null;
+    }
+  }
+
+  function applyIconToStatBar(bar, iconType) {
+    const safeIcon = normalizeHabitIcon(iconType);
+    bar.dataset.icon = safeIcon;
+    const btn = bar.querySelector(".stat-icon-btn");
+    if (btn) btn.innerHTML = `<i data-lucide="${safeIcon}"></i>`;
+    const options = bar.querySelector(".stat-icon-options");
+    if (options) {
+      const optionsHtml = HABIT_ICON_TYPES.filter(type => type !== safeIcon)
+        .map(type => `
+          <button class="stat-icon-option" type="button" data-icon="${type}" aria-label="${type}">
+            <i data-lucide="${type}"></i>
+          </button>
+        `)
+        .join("");
+      options.innerHTML = optionsHtml;
+      options.setAttribute("aria-hidden", "true");
+    }
+    bar.classList.remove("is-icon-open");
+    lucide.createIcons({ scope: bar });
+  }
+
+  function updateLocalHabitIcon(habitId, iconType) {
+    if (!habitId) return;
+    const safeIcon = normalizeHabitIcon(iconType);
+    habits = habits.map(h => (String(h.id) === String(habitId) ? { ...h, icon_type: safeIcon } : h));
+    if (statsCalendarHabits?.myHabits) {
+      statsCalendarHabits.myHabits = statsCalendarHabits.myHabits.map(h =>
+        (String(h.id) === String(habitId) ? { ...h, icon_type: safeIcon } : h)
+      );
+    }
+  }
+
+  async function updateHabitIconType(habitId, iconType) {
+    if (!habitId || !currentUser) return;
+    const safeIcon = normalizeHabitIcon(iconType);
+    const { error } = await supabaseClient
+      .from("habits")
+      .update({ icon_type: safeIcon })
+      .eq("id", habitId);
+    if (error) console.error("update icon_type error:", error);
+  }
+
+  function setupStatIconPickers() {
+    if (!statsViewEl) return;
+    const bars = statsViewEl.querySelectorAll(".stat-bar[data-owner='my']");
+    bars.forEach(bar => {
+      const btn = bar.querySelector(".stat-icon-btn");
+      const options = bar.querySelector(".stat-icon-options");
+      if (!btn || !options) return;
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = bar.classList.contains("is-icon-open");
+        closeAllStatIconPickers(bar);
+        if (isOpen) {
+          bar.classList.remove("is-icon-open");
+          options.setAttribute("aria-hidden", "true");
+          if (iconPickerTimer) {
+            clearTimeout(iconPickerTimer);
+            iconPickerTimer = null;
+          }
+        } else {
+          bar.classList.add("is-icon-open");
+          options.setAttribute("aria-hidden", "false");
+          if (iconPickerTimer) clearTimeout(iconPickerTimer);
+          iconPickerTimer = setTimeout(() => {
+            closeAllStatIconPickers();
+          }, 5000);
+        }
+      });
+    });
+
+    if (statsViewEl.dataset.iconPickerBound === "true") return;
+    statsViewEl.dataset.iconPickerBound = "true";
+
+    statsViewEl.addEventListener("click", async (e) => {
+      const option = e.target.closest(".stat-icon-option");
+      if (!option) return;
+      const bar = option.closest(".stat-bar");
+      if (!bar || bar.dataset.owner !== "my") return;
+      e.stopPropagation();
+      if (iconPickerTimer) {
+        clearTimeout(iconPickerTimer);
+        iconPickerTimer = null;
+      }
+      const iconType = normalizeHabitIcon(option.dataset.icon);
+      applyIconToStatBar(bar, iconType);
+      updateLocalHabitIcon(bar.dataset.habitId, iconType);
+      await updateHabitIconType(bar.dataset.habitId, iconType);
+    });
+
+    statsViewEl.addEventListener("click", (e) => {
+      if (e.target.closest(".stat-icon-btn") || e.target.closest(".stat-icon-options")) return;
+      closeAllStatIconPickers();
+    });
+  }
+
   function barsHtml(habits, keyPrefix) {
     let html = "";
     for (let i = 0; i < 3; i++) {
       const h = habits[i];
 
       if (!h) {
-      html += `
-        <div class="stat-item">
-          <div class="stat-bar" style="position:relative;">
-            <div class="stat-fill" style="width:0%"></div>
-          </div>
-        </div>`;
+        html += `
+          <div class="stat-item">
+            <div class="stat-bar" style="position:relative;">
+              <div class="stat-bar-inner">
+                <button class="stat-icon-btn" type="button" style="cursor:default; pointer-events:none;">
+                  <i data-lucide="brain"></i>
+                </button>
+                <div class="stat-icon-options" aria-hidden="true"></div>
+                <div class="stat-bar-track">
+                  <div class="stat-progress" data-progress="0" style="
+                    position:absolute;
+                    inset:0;
+                    width:0%;
+                    background:#e5e7eb;
+                    border-radius:12px;
+                    z-index:1;
+                  "></div>
+                  <div class="stat-bar-label"></div>
+                </div>
+              </div>
+            </div>
+          </div>`;
         continue;
       }
 
@@ -4446,6 +4731,14 @@ forgotPw.onclick = () => {
       const rawTitle = h.title || "";
       const hasTitle = rawTitle.trim().length > 0;
       const color = h.color || "#e5e7eb";
+      const iconType = normalizeHabitIcon(h.icon_type);
+      const iconOptions = HABIT_ICON_TYPES.filter(type => type !== iconType)
+        .map(type => `
+          <button class="stat-icon-option" type="button" data-icon="${type}" aria-label="${type}">
+            <i data-lucide="${type}"></i>
+          </button>
+        `)
+        .join("");
 
       let percent = 0;
 
@@ -4465,35 +4758,30 @@ forgotPw.onclick = () => {
 
       html += `
         <div class="stat-item">
-        <div class="stat-bar is-clickable" data-habit-id="${h.id}" data-color="${color}" style="position:relative;">
-
-          <!-- Fortschrittsbalken -->
-          <div class="stat-progress" data-progress="${percent}" style="
-            position:absolute;
-            inset:0;
-            width:0%;
-            background:${color};
-            border-radius:16px;
-            z-index:1;
-          "></div>
-
-          <!-- Text nur wenn vorhanden -->
-          <div style="
-            position:relative;
-            z-index:2;
-            height:100%;
-            display:flex;
-            align-items:center;
-            padding-left:12px;
-            font-weight:700;
-            color:var(--c-text);
-            white-space:nowrap;
-            overflow:hidden;
-            text-overflow:ellipsis;
-          ">
-            ${hasTitle ? rawTitle : ""}
+        <div class="stat-bar is-clickable" data-habit-id="${h.id}" data-color="${color}" data-owner="${keyPrefix}" data-icon="${iconType}" style="position:relative;">
+          <div class="stat-bar-inner">
+            <button class="stat-icon-btn" type="button" aria-label="Symbol wählen">
+              <i data-lucide="${iconType}"></i>
+            </button>
+            <div class="stat-icon-options" aria-hidden="true">
+              ${iconOptions}
+            </div>
+            <div class="stat-bar-track">
+              <!-- Fortschrittsbalken -->
+              <div class="stat-progress" data-progress="${percent}" style="
+                position:absolute;
+                inset:0;
+                width:0%;
+                background:${color};
+                border-radius:12px;
+                z-index:1;
+              "></div>
+              <!-- Text nur wenn vorhanden -->
+              <div class="stat-bar-label">
+                ${hasTitle ? rawTitle : ""}
+              </div>
+            </div>
           </div>
-
         </div>
         <div class="stat-calendar" data-habit-id="${h.id}" data-color="${color}">
           <div class="stat-calendar-header-row">
@@ -4527,12 +4815,34 @@ forgotPw.onclick = () => {
       return data?.current_streak ?? 0;
     }
 
-    function updateReminderCompletion() {
+  function updateReminderCompletion() {
       if (!notificationsViewEl) return;
       const statusEl = notificationsViewEl.querySelector("#reminderStatus");
       if (!statusEl) return;
-      const isComplete = reminderChecklistItems.every(item => reminderChecklistState.has(item.id));
+      const isComplete = reminderChecklistItems.every(item => isReminderComplete(item));
       statusEl.classList.toggle("is-complete", isComplete);
+    }
+
+    function getReminderTarget(item) {
+      return parseInt(item?.target) > 0 ? parseInt(item.target) : 1;
+    }
+
+    function getReminderIds(item) {
+      if (item?.dbIds && Array.isArray(item.dbIds) && item.dbIds.length > 0) return item.dbIds;
+      return [item.id];
+    }
+
+    function getReminderCount(item) {
+      const ids = getReminderIds(item);
+      return ids.reduce((sum, id) => sum + (reminderChecklistState.has(id) ? 1 : 0), 0);
+    }
+
+    function isReminderComplete(item) {
+      return getReminderCount(item) >= getReminderTarget(item);
+    }
+
+    function getReminderTotalTarget() {
+      return reminderChecklistItems.reduce((sum, item) => sum + getReminderTarget(item), 0);
     }
     
     async function renderNotifications() {
@@ -4542,13 +4852,14 @@ forgotPw.onclick = () => {
       }
 
       const itemsHtml = reminderChecklistItems.map(item => `
-        <button class="reminder-item${reminderChecklistState.has(item.id) ? " is-selected" : ""}" data-reminder-id="${item.id}" type="button">
+        <button class="reminder-item${isReminderComplete(item) ? " is-selected" : (getReminderCount(item) > 0 ? " is-partial" : "")}" data-reminder-id="${item.id}" type="button">
           <span class="reminder-emoji">${item.emoji}</span>
           <span class="reminder-text">${item.label}</span>
+          ${getReminderTarget(item) > 1 ? `<span class="reminder-count">${getReminderCount(item)}/${getReminderTarget(item)}</span>` : ""}
         </button>
       `).join("");
 
-      const isComplete = reminderChecklistItems.every(item => reminderChecklistState.has(item.id));
+      const isComplete = reminderChecklistItems.every(item => isReminderComplete(item));
 
       notificationsViewEl.innerHTML = `
         <div class="reminder-pane">
@@ -4573,40 +4884,88 @@ forgotPw.onclick = () => {
           btn.addEventListener("click", () => {
             const id = btn.dataset.reminderId;
             if (!id) return;
-            if (reminderChecklistState.has(id)) {
-              reminderChecklistState.delete(id);
-              btn.classList.toggle("is-selected");
-              updateReminderCompletion();
-              if (currentUser?.id) {
-                const day = getLocalDateString();
-                supabaseClient
-                  .from("reminder_clicks")
-                  .delete()
-                  .eq("user_id", currentUser.id)
-                  .eq("day", day)
-                  .eq("position_id", id)
-                  .then(({ error }) => {
-                    if (error) console.error("reminder_clicks delete error:", error);
-                  });
+            const item = reminderChecklistItems.find(it => it.id === id);
+            if (!item) return;
+
+            const target = getReminderTarget(item);
+            const ids = getReminderIds(item);
+            const count = getReminderCount(item);
+
+            if (target <= 1) {
+              const dbId = ids[0] || id;
+              if (reminderChecklistState.has(dbId)) {
+                reminderChecklistState.delete(dbId);
+                if (currentUser?.id) {
+                  const day = getLocalDateString();
+                  supabaseClient
+                    .from("reminder_clicks")
+                    .delete()
+                    .eq("user_id", currentUser.id)
+                    .eq("day", day)
+                    .eq("position_id", dbId)
+                    .then(({ error }) => {
+                      if (error) console.error("reminder_clicks delete error:", error);
+                    });
+                }
+              } else {
+                reminderChecklistState.add(dbId);
+                if (currentUser?.id) {
+                  const day = getLocalDateString();
+                  supabaseClient
+                    .from("reminder_clicks")
+                    .upsert(
+                      { user_id: currentUser.id, day, position_id: dbId },
+                      { onConflict: "user_id,day,position_id" }
+                    )
+                    .then(({ error }) => {
+                      if (error) console.error("reminder_clicks upsert error:", error);
+                    });
+                }
               }
-              return;
+            } else {
+              if (count < target) {
+                const nextId = ids.find(dbId => !reminderChecklistState.has(dbId)) || ids[ids.length - 1];
+                if (nextId && !reminderChecklistState.has(nextId)) {
+                  reminderChecklistState.add(nextId);
+                  if (currentUser?.id) {
+                    const day = getLocalDateString();
+                    supabaseClient
+                      .from("reminder_clicks")
+                      .upsert(
+                        { user_id: currentUser.id, day, position_id: nextId },
+                        { onConflict: "user_id,day,position_id" }
+                      )
+                      .then(({ error }) => {
+                        if (error) console.error("reminder_clicks upsert error:", error);
+                      });
+                  }
+                }
+              } else {
+                const removeId = ids.slice().reverse().find(dbId => reminderChecklistState.has(dbId));
+                if (removeId) {
+                  reminderChecklistState.delete(removeId);
+                  if (currentUser?.id) {
+                    const day = getLocalDateString();
+                    supabaseClient
+                      .from("reminder_clicks")
+                      .delete()
+                      .eq("user_id", currentUser.id)
+                      .eq("day", day)
+                      .eq("position_id", removeId)
+                      .then(({ error }) => {
+                        if (error) console.error("reminder_clicks delete error:", error);
+                      });
+                  }
+                }
+              }
             }
 
-            reminderChecklistState.add(id);
-            btn.classList.toggle("is-selected");
+            const newCount = getReminderCount(item);
+            btn.classList.toggle("is-selected", newCount >= target);
+            btn.classList.toggle("is-partial", newCount > 0 && newCount < target);
+            const countEl = btn.querySelector(".reminder-count");
+            if (countEl && target > 1) countEl.textContent = `${newCount}/${target}`;
             updateReminderCompletion();
-            if (currentUser?.id) {
-              const day = getLocalDateString();
-              supabaseClient
-                .from("reminder_clicks")
-                .upsert(
-                  { user_id: currentUser.id, day, position_id: id },
-                  { onConflict: "user_id,day,position_id" }
-                )
-                .then(({ error }) => {
-                  if (error) console.error("reminder_clicks upsert error:", error);
-                });
-            }
           });
         });
       }
@@ -4664,20 +5023,13 @@ forgotPw.onclick = () => {
           </div>
 
           <!-- Streak -->
-          <div style="
-            display:flex;
-            align-items:flex-end;
-            gap:6px;
-            font-size:1.5rem;
-            font-weight:700;
-            line-height:1;
-          ">
+          <div class="stats-streak">
             ${
               otherUserData && myStreak !== otherStreak
-                ? `<i data-lucide="${myStreak > otherStreak ? 'trophy' : 'turtle'}" style="width:22px; height:22px;"></i>`
+                ? `<i data-lucide="${myStreak > otherStreak ? 'trophy' : 'turtle'}" class="stats-streak-icon"></i>`
                 : ``
             }
-            <span>${myStreak}</span>
+            <span class="stats-streak-value">${myStreak}</span>
           </div>
 
         </div>
@@ -4687,33 +5039,27 @@ forgotPw.onclick = () => {
 
       const reminderClicksCount = await loadReminderClickCountForDay(currentUser.id);
       if (reminderClicksCount > 0) {
-        const reminderTotal = reminderChecklistItems.length || 1;
+        const reminderTotal = getReminderTotalTarget() || 1;
         const reminderPercent = Math.min(100, Math.round((reminderClicksCount / reminderTotal) * 100));
         html += `
           <div class="stat-item">
             <div class="stat-bar" style="position:relative;">
-              <div class="stat-progress" data-progress="${reminderPercent}" style="
-                position:absolute;
-                inset:0;
-                width:0%;
-                background:#8bb6ff;
-                border-radius:16px;
-                z-index:1;
-              "></div>
-              <div style="
-                position:relative;
-                z-index:2;
-                height:100%;
-                display:flex;
-                align-items:center;
-                padding-left:12px;
-                font-weight:700;
-                color:var(--c-text);
-                white-space:nowrap;
-                overflow:hidden;
-                text-overflow:ellipsis;
-              ">
-                <i data-lucide="cookie"></i>
+              <div class="stat-bar-inner">
+                <button class="stat-icon-btn" type="button" style="cursor:default; pointer-events:none;">
+                  <i data-lucide="cookie"></i>
+                </button>
+                <div class="stat-icon-options" aria-hidden="true"></div>
+                <div class="stat-bar-track">
+                  <div class="stat-progress" data-progress="${reminderPercent}" style="
+                    position:absolute;
+                    inset:0;
+                    width:0%;
+                    background:#8bb6ff;
+                    border-radius:12px;
+                    z-index:1;
+                  "></div>
+                  <div class="stat-bar-label">Ernährung</div>
+                </div>
               </div>
             </div>
           </div>
@@ -4744,20 +5090,13 @@ forgotPw.onclick = () => {
               ">${otherName}</div>
             </div>
 
-            <div style="
-              display:flex;
-              align-items:flex-end;
-              gap:6px;
-              font-size:1.5rem;
-              font-weight:700;
-              line-height:1;
-            ">
+            <div class="stats-streak">
               ${
                 myStreak !== otherStreak
-                  ? `<i data-lucide="${myStreak > otherStreak ? 'turtle' : 'trophy'}" style="width:22px; height:22px;"></i>`
+                  ? `<i data-lucide="${myStreak > otherStreak ? 'turtle' : 'trophy'}" class="stats-streak-icon"></i>`
                   : ``
               }
-              <span>${otherStreak}</span>
+              <span class="stats-streak-value">${otherStreak}</span>
             </div>
           </div>
         `;
@@ -4774,6 +5113,7 @@ forgotPw.onclick = () => {
         otherUserId: otherUserData ? otherUserData.id : null
       };
       setupStatCalendarInteractions();
+      setupStatIconPickers();
       animateStatBars();
       refreshStatsCalendarData();
       updateDesktopLayoutHeights();
@@ -5075,7 +5415,6 @@ forgotPw.onclick = () => {
   });
 
   // Login-Kreis schwebend animieren
-  startLoginCircleFloat();
 
   /*
     SQL zum Sicherstellen, dass die Spalte "color" existiert:
