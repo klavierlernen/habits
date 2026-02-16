@@ -37,6 +37,8 @@
         --c-bg: #ffffff;
         --c-text: #000000;
         --c-card: #e4e4e4;
+        --c-skeleton: #cfd4db;
+        --c-skeleton-soft: #dfe3e8;
         color-scheme: light dark;
       }
 
@@ -45,6 +47,8 @@
           --c-bg: #000000;
           --c-text: #ffffff;
           --c-card: #1e1e1e;
+          --c-skeleton: #3a3a3a;
+          --c-skeleton-soft: #2f2f2f;
           color-scheme: dark;
         }
       }
@@ -127,7 +131,7 @@
     #loginScreen {
       position:absolute;
       inset:0;
-      display:flex;
+      display:none;
       flex-direction:column;
       justify-content:center;
       align-items:center;
@@ -979,6 +983,78 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+    }
+
+    @keyframes loadingBrightnessPulse {
+      0% {
+        filter: brightness(0.9);
+        opacity: 0.62;
+      }
+      50% {
+        filter: brightness(1.12);
+        opacity: 0.92;
+      }
+      100% {
+        filter: brightness(0.9);
+        opacity: 0.62;
+      }
+    }
+
+    .card.is-loading-skeleton {
+      opacity: 1 !important;
+      pointer-events: none;
+      background: var(--c-skeleton-soft);
+      animation: loadingBrightnessPulse 1.35s ease-in-out infinite;
+    }
+
+    .card.is-loading-skeleton .card-face {
+      background: transparent;
+      padding: 24px;
+    }
+
+    .card-skeleton-title {
+      width: 62%;
+      height: 30px;
+      border-radius: 10px;
+      background: var(--c-skeleton);
+      margin-top: 6px;
+    }
+
+    .card-skeleton-chip {
+      width: 70px;
+      height: 28px;
+      border-radius: 999px;
+      background: var(--c-skeleton);
+    }
+
+    .stat-bar-track.is-loading-skeleton {
+      background: var(--c-skeleton-soft);
+    }
+
+    .stat-progress.is-loading-skeleton {
+      width: 100% !important;
+      background: var(--c-skeleton) !important;
+      animation: loadingBrightnessPulse 1.35s ease-in-out infinite;
+    }
+
+    .stat-icon-skeleton {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--c-skeleton);
+      opacity: 0.85;
+      margin-left: 2px;
+      flex: 0 0 auto;
+    }
+
+    .stat-bar-label.stat-bar-label-skeleton {
+      color: transparent;
+      width: 58%;
+      height: 18px;
+      border-radius: 8px;
+      background: var(--c-skeleton);
+      margin: 0 0 0 12px;
+      align-self: center;
     }
 
     .stat-calendar {
@@ -2550,16 +2626,16 @@ forgotPw.onclick = () => {
       refreshBellIcon();
       startNotificationPolling();
 
-      await requestAllPermissions();
       setupRealtime();
       setupShakeDetection();
+      renderInitialLoadingSkeletons();
 
       await checkStreakResetGate();
       await checkReminderResetDaily();
       await safeLoadHabits();
       const subline = document.getElementById("loginSubline");
       if (subline) subline.style.display = "none";
-      await showIntroProgressScreen();
+      await proceedAfterIntro();
     };
 
     // === AUTOLOGIN + QR FLOW ===
@@ -2575,16 +2651,21 @@ forgotPw.onclick = () => {
 
         setupRealtime();
         setupShakeDetection();
+        renderInitialLoadingSkeletons();
 
         await checkStreakResetGate();
         await checkReminderResetDaily();
         await safeLoadHabits();
-        await showIntroProgressScreen();
+        await proceedAfterIntro();
       } else {
         // Kein Autologin möglich → Login anbieten
         const headline = document.getElementById("loginHeadline");
         const btnBar   = document.getElementById("loginButtonBar");
 
+        if (loginScreen) {
+          loginScreen.style.display = "flex";
+          loginScreen.style.opacity = "1";
+        }
         if (headline) headline.textContent = "Bitte melde dich an";
         if (btnBar)   btnBar.style.display = "flex";
       }
@@ -2668,6 +2749,84 @@ forgotPw.onclick = () => {
 
     function clearAllSlots() {
       slotOrder.forEach(id => { document.getElementById(id).innerHTML = ""; });
+    }
+
+    function renderStatsLoadingSkeleton() {
+      if (!statsViewEl) return;
+
+      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+      if (isDesktop) {
+        statsOpen = true;
+        statsViewEl.style.position = "relative";
+        statsViewEl.style.top = "0";
+        statsViewEl.style.bottom = "auto";
+        statsViewEl.style.left = "auto";
+        statsViewEl.style.right = "auto";
+      } else {
+        statsViewEl.style.position = "";
+        statsViewEl.style.top = "100svh";
+        statsViewEl.style.bottom = "0";
+        statsViewEl.style.left = "0";
+        statsViewEl.style.right = "0";
+      }
+
+      const bars = Array.from({ length: 3 }).map(() => `
+        <div class="stat-item">
+          <div class="stat-bar" style="position:relative;">
+            <div class="stat-bar-inner">
+              <span class="stat-icon-skeleton"></span>
+              <div class="stat-bar-track is-loading-skeleton">
+                <div class="stat-progress is-loading-skeleton" style="
+                  position:absolute;
+                  inset:0;
+                  border-radius:12px;
+                  z-index:1;
+                "></div>
+                <div class="stat-bar-label stat-bar-label-skeleton">.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      statsViewEl.innerHTML = bars;
+      updateDesktopLayoutHeights();
+      alignDesktopStatsTop();
+      alignDesktopDividerHeight();
+    }
+
+    function renderInitialLoadingSkeletons() {
+      clearAllSlots();
+
+      slotOrder.forEach(id => {
+        const slot = document.getElementById(id);
+        if (!slot) return;
+
+        slot.innerHTML = `
+          <div class="card is-loading-skeleton">
+            <div class="card-face front">
+              <div class="card-skeleton-title"></div>
+              <div class="counter-wrap">
+                <div class="card-skeleton-chip"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      renderStatsLoadingSkeleton();
+
+      appPage.style.display = "block";
+      appPage.style.opacity = "1";
+
+      if (loginScreen && loginScreen.style.display !== "none") {
+        gsap.to(loginScreen, {
+          opacity: 0,
+          duration: 0.25,
+          ease: "sine.inOut",
+          onComplete: () => { loginScreen.style.display = "none"; }
+        });
+      }
     }
 
     function refreshAddButtonIcon() {
