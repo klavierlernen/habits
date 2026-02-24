@@ -27,7 +27,8 @@
   <style>
     :root {
       --page-padding: 16px;
-      --card-height: calc((100svh - 16px*5 - 60px - env(safe-area-inset-bottom)) / 3);
+      --mobile-card-scroll-peek: 18px;
+      --card-height: calc((100svh - 16px*5 - 60px - env(safe-area-inset-bottom) + var(--mobile-card-scroll-peek)) / 3);
       --stats-name-size: 1.8rem;
       --stats-streak-size: 1.8rem;
       --stats-avatar-size: 38px;
@@ -395,6 +396,10 @@
       inset:0;
       display:none;
       opacity:0;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
     }
 
     .page {
@@ -572,60 +577,93 @@
       position:fixed;
       left:0;
       right:0;
-      bottom:0;
+      bottom:14px;
       padding:0 16px calc(16px + env(safe-area-inset-bottom));
       height:calc(60px + env(safe-area-inset-bottom));
       background:transparent; /* Karten bleiben dahinter sichtbar */
       display:flex;
       justify-content:center;
       align-items:flex-end;
-      gap:12px;
+      gap:6px;
       z-index:9999;
       pointer-events:none;
     }
 
     .bottom-liquid-nav {
+      --dock-glass: #bbbbbc;
+      --dock-light: #fff;
+      --dock-dark: #000;
+      --dock-reflex-dark: 1.35;
+      --dock-reflex-light: 0.85;
+      --dock-saturation: 165%;
       position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      overflow: visible;
-    }
-
-    .bottom-liquid-shell {
-      position: absolute;
-      pointer-events: none;
+      left: 12px;
+      right: 12px;
+      bottom: calc(6px + env(safe-area-inset-bottom));
+      height: 64px;
       border-radius: 999px;
-      overflow: hidden;
+      pointer-events: none;
       z-index: 0;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02)),
-        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.025));
-      border: 1px solid rgba(255,255,255,0.20);
+      overflow: hidden;
+      isolation: isolate;
+      background-color: color-mix(in srgb, var(--dock-glass) 12%, transparent);
+      border: none;
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.25),
-        inset 0 -8px 16px rgba(255,255,255,0.01),
-        inset 0 0 0 1px rgba(255,255,255,0.02),
-        0 6px 18px rgba(0,0,0,0.06),
-        0 1px 6px rgba(0,0,0,0.03);
-      backdrop-filter: blur(20px) saturate(165%);
-      -webkit-backdrop-filter: blur(20px) saturate(165%);
-      will-change: transform, opacity, left, width;
+        inset 0 0 0 1px color-mix(in srgb, var(--dock-light) calc(var(--dock-reflex-light) * 10%), transparent),
+        inset 1.8px 3px 0px -2px color-mix(in srgb, var(--dock-light) calc(var(--dock-reflex-light) * 90%), transparent),
+        inset -2px -2px 0px -2px color-mix(in srgb, var(--dock-light) calc(var(--dock-reflex-light) * 80%), transparent),
+        inset -3px -8px 1px -6px color-mix(in srgb, var(--dock-light) calc(var(--dock-reflex-light) * 60%), transparent),
+        inset -0.3px -1px 4px 0px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 12%), transparent),
+        inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 20%), transparent),
+        inset 0px 3px 4px -2px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 20%), transparent),
+        inset 2px -6.5px 1px -4px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 10%), transparent),
+        0px 1px 5px 0px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 10%), transparent),
+        0px 6px 16px 0px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 8%), transparent);
+      backdrop-filter: blur(8px) saturate(var(--dock-saturation));
+      -webkit-backdrop-filter: blur(8px) saturate(var(--dock-saturation));
+      will-change: transform, opacity;
     }
 
-    .bottom-liquid-shell::before {
+    .bottom-liquid-nav-active {
+      position: absolute;
+      border-radius: 999px;
+      z-index: 1;
+      opacity: 0;
+      background-color: color-mix(in srgb, var(--dock-glass) 30%, transparent);
+      box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--dock-light) calc(var(--dock-reflex-light) * 12%), transparent),
+        inset 2px 1px 0px -1px color-mix(in srgb, var(--dock-light) calc(var(--dock-reflex-light) * 70%), transparent),
+        inset -1.5px -1px 0px -1px color-mix(in srgb, var(--dock-light) calc(var(--dock-reflex-light) * 55%), transparent),
+        inset -1px 2px 3px -1px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 16%), transparent),
+        inset 0px -4px 1px -2px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 8%), transparent),
+        0px 3px 6px 0px color-mix(in srgb, var(--dock-dark) calc(var(--dock-reflex-dark) * 8%), transparent);
+      backdrop-filter: blur(10px) saturate(var(--dock-saturation));
+      -webkit-backdrop-filter: blur(10px) saturate(var(--dock-saturation));
+      will-change: left, top, width, height, opacity, transform;
+    }
+
+    .bottom-liquid-nav::before,
+    .bottom-liquid-nav::after {
       content: "";
       position: absolute;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    .bottom-liquid-nav::before {
       inset: 1px;
       border-radius: inherit;
       background:
-        radial-gradient(120px 30px at 22% 16%, rgba(255,255,255,0.10), transparent 75%),
-        radial-gradient(140px 30px at 82% 18%, rgba(255,255,255,0.08), transparent 75%),
-        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
-      opacity: 0.8;
+        radial-gradient(180px 36px at 18% 18%, color-mix(in srgb, var(--dock-light) 18%, transparent), transparent 75%),
+        radial-gradient(220px 40px at 82% 18%, color-mix(in srgb, var(--dock-light) 12%, transparent), transparent 75%),
+        radial-gradient(260px 42px at 50% 112%, color-mix(in srgb, var(--dock-light) 7%, transparent), transparent 80%),
+        linear-gradient(180deg,
+          color-mix(in srgb, var(--dock-light) 6%, transparent),
+          color-mix(in srgb, var(--dock-light) 0%, transparent));
+      opacity: 0.92;
     }
 
-    .bottom-liquid-shell::after {
+    .bottom-liquid-nav::after {
       content: "";
       position: absolute;
       left: 8%;
@@ -635,32 +673,99 @@
       border-radius: 999px;
       background: linear-gradient(90deg,
         rgba(255,255,255,0),
-        rgba(255,255,255,0.12),
+        color-mix(in srgb, var(--dock-light) 16%, transparent),
         rgba(255,255,255,0),
-        rgba(255,255,255,0.08),
+        color-mix(in srgb, var(--dock-light) 10%, transparent),
         rgba(255,255,255,0));
       filter: blur(5px);
-      opacity: 0.16;
+      opacity: 0.24;
       will-change: transform, opacity;
-    }
-
-    .bottom-liquid-shell.shell-middle::before {
-      background:
-        radial-gradient(180px 30px at 20% 16%, rgba(255,255,255,0.10), transparent 76%),
-        radial-gradient(200px 30px at 80% 18%, rgba(255,255,255,0.06), transparent 76%),
-        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0));
     }
 
     .bottom-liquid-nav-sheen,
     .bottom-liquid-nav-caustic,
     .bottom-liquid-nav-blob {
-      display: none;
+      position: absolute;
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: 1;
+      will-change: transform, opacity;
+    }
+
+    .bottom-liquid-nav-sheen {
+      top: 2px;
+      left: -18%;
+      width: 52%;
+      height: 42%;
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg,
+          color-mix(in srgb, var(--dock-light) 44%, transparent),
+          color-mix(in srgb, var(--dock-light) 4%, transparent));
+      filter: blur(8px);
+      opacity: 0.26;
+    }
+
+    .bottom-liquid-nav-caustic {
+      inset: auto 10% 8px 10%;
+      height: 12px;
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0),
+        color-mix(in srgb, var(--dock-light) 12%, transparent),
+        rgba(255,255,255,0),
+        color-mix(in srgb, var(--dock-light) 8%, transparent),
+        rgba(255,255,255,0));
+      filter: blur(6px);
+      opacity: 0.18;
+    }
+
+    .bottom-liquid-nav-blob {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(12px);
+      opacity: 0.12;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      z-index: 1;
+      will-change: transform, opacity;
+    }
+
+    .bottom-liquid-nav-blob.blob-a {
+      width: 112px;
+      height: 38px;
+      left: 12%;
+      top: 10px;
+      background: color-mix(in srgb, var(--dock-light) 22%, transparent);
+    }
+
+    .bottom-liquid-nav-blob.blob-b {
+      width: 138px;
+      height: 46px;
+      left: 41%;
+      top: 14px;
+      background: color-mix(in srgb, var(--dock-light) 14%, transparent);
+    }
+
+    .bottom-liquid-nav-blob.blob-c {
+      width: 102px;
+      height: 34px;
+      right: 11%;
+      top: 14px;
+      background: color-mix(in srgb, var(--dock-light) 18%, transparent);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .bottom-liquid-nav {
+        --dock-reflex-dark: 1.9;
+        --dock-reflex-light: 0.45;
+        background-color: color-mix(in srgb, var(--dock-glass) 10%, transparent);
+      }
     }
 
     .btn-half {
-      flex:0 0 60px;
-      width:60px;
-      height:60px;
+      flex:0 0 56px;
+      width:56px;
+      height:56px;
       border-radius:999px;
       display:flex;
       align-items:center;
@@ -675,11 +780,12 @@
       color: var(--c-text) !important;
       position: relative;
       z-index: 2;
+      transform: translateY(-2px);
     }
 
     .btn-half svg {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
     }
 
     .desktop-workspace {
@@ -701,6 +807,7 @@
 
     @media (min-width: 768px) {
       :root {
+        --mobile-card-scroll-peek: 0px;
         --stats-name-size: 1.6rem;
         --stats-streak-size: 1.6rem;
         --stats-avatar-size: 32px;
@@ -708,6 +815,7 @@
 
       #appPage {
         padding:32px 24px;
+        overflow: hidden;
       }
 
       .desktop-workspace {
@@ -2241,9 +2349,7 @@
 
   <div class="buttons-row">
     <div class="bottom-liquid-nav" id="bottomLiquidNav" aria-hidden="true">
-      <span class="bottom-liquid-shell shell-left" data-shell="left"></span>
-      <span class="bottom-liquid-shell shell-middle" data-shell="middle"></span>
-      <span class="bottom-liquid-shell shell-right" data-shell="right"></span>
+      <span class="bottom-liquid-nav-active" id="bottomLiquidNavActive"></span>
       <span class="bottom-liquid-nav-sheen"></span>
       <span class="bottom-liquid-nav-caustic"></span>
       <span class="bottom-liquid-nav-blob blob-a"></span>
@@ -2401,6 +2507,7 @@
       updateDesktopLayoutHeights();
       alignDesktopStatsTop();
       alignDesktopDividerHeight();
+      layoutBottomLiquidNav();
     });
 
     document.addEventListener("click", (e) => {
@@ -3511,8 +3618,100 @@
       document.body.classList.toggle("login-orbs-paused", !!isPaused);
     }
 
+    function layoutBottomLiquidNav({ animate = false } = {}) {
+      if (!bottomLiquidNavEl) return;
+      const activeEl = document.getElementById("bottomLiquidNavActive");
+      if (isDesktopView()) {
+        bottomLiquidNavEl.style.display = "none";
+        if (activeEl) activeEl.style.opacity = "0";
+        return;
+      }
+      bottomLiquidNavEl.style.display = "";
+
+      const row = document.querySelector(".buttons-row");
+      if (!row) return;
+
+      const visibleButtons = Array.from(row.querySelectorAll(".btn-half"))
+        .filter(btn => {
+          const cs = window.getComputedStyle(btn);
+          return cs.display !== "none" && cs.visibility !== "hidden" && btn.offsetParent !== null;
+        });
+
+      if (visibleButtons.length === 0) return;
+
+      const rowRect = row.getBoundingClientRect();
+      const firstRect = visibleButtons[0].getBoundingClientRect();
+      const lastRect = visibleButtons[visibleButtons.length - 1].getBoundingClientRect();
+
+      const padX = 14;
+      const padY = 4;
+      const target = {
+        left: Math.round(firstRect.left - rowRect.left - padX),
+        width: Math.round((lastRect.right - firstRect.left) + padX * 2),
+        top: Math.round(firstRect.top - rowRect.top - padY),
+        height: Math.round(firstRect.height + padY * 2)
+      };
+
+      if (window.gsap && animate) {
+        gsap.to(bottomLiquidNavEl, {
+          left: target.left,
+          width: target.width,
+          top: target.top,
+          height: target.height,
+          right: "auto",
+          bottom: "auto",
+          duration: 0.24,
+          ease: "power2.out"
+        });
+      } else {
+        bottomLiquidNavEl.style.left = `${target.left}px`;
+        bottomLiquidNavEl.style.width = `${target.width}px`;
+        bottomLiquidNavEl.style.top = `${target.top}px`;
+        bottomLiquidNavEl.style.height = `${target.height}px`;
+        bottomLiquidNavEl.style.right = "auto";
+        bottomLiquidNavEl.style.bottom = "auto";
+      }
+
+      const activeBtn = (() => {
+        const mode = addBtnEl?.dataset?.mode || "main";
+        if (mode === "notifications" && visibleButtons.includes(bellBtnEl)) return bellBtnEl;
+        if (mode === "stats" && visibleButtons.includes(statsBtnEl)) return statsBtnEl;
+        if ((mode === "settings" || mode === "changes") && visibleButtons.includes(settingsBtnEl)) return settingsBtnEl;
+        if (visibleButtons.includes(addBtnEl)) return addBtnEl;
+        return visibleButtons[0] || null;
+      })();
+
+      if (!activeEl || !activeBtn) return;
+
+      const activeRect = activeBtn.getBoundingClientRect();
+      const activePadY = 2;
+      const activePadX = -2;
+      const activeTarget = {
+        left: Math.round(activeRect.left - rowRect.left - target.left + activePadX),
+        top: Math.round(activeRect.top - rowRect.top - target.top + activePadY),
+        width: Math.round(activeRect.width - activePadX * 2),
+        height: Math.round(activeRect.height - activePadY * 2),
+        opacity: 1
+      };
+
+      if (window.gsap && animate) {
+        gsap.to(activeEl, {
+          ...activeTarget,
+          duration: 0.24,
+          ease: "power2.out"
+        });
+      } else {
+        activeEl.style.left = `${activeTarget.left}px`;
+        activeEl.style.top = `${activeTarget.top}px`;
+        activeEl.style.width = `${activeTarget.width}px`;
+        activeEl.style.height = `${activeTarget.height}px`;
+        activeEl.style.opacity = "1";
+      }
+    }
+
     function setupBottomLiquidNav() {
       if (!bottomLiquidNavEl) return;
+      layoutBottomLiquidNav({ animate: false });
       const prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (!window.gsap || prefersReducedMotion) return;
 
@@ -3523,8 +3722,8 @@
         gsap.to(blob, {
           x: () => (Math.random() > 0.5 ? xAmp : -xAmp),
           y: () => (Math.random() > 0.5 ? yAmp : -yAmp),
-          opacity: () => 0.18 + Math.random() * 0.18,
-          duration: 4.6 + idx * 1.1,
+          opacity: () => 0.08 + Math.random() * 0.08,
+          duration: 4.8 + idx * 1.1,
           repeat: -1,
           yoyo: true,
           ease: "sine.inOut"
@@ -3539,10 +3738,10 @@
         gsap.to(sheen, {
           xPercent: 125,
           rotate: 1,
-          opacity: 0.22,
-          duration: 7.8,
+          opacity: 0.18,
+          duration: 8.4,
           repeat: -1,
-          repeatDelay: 0.6,
+          repeatDelay: 0.8,
           ease: "sine.inOut"
         });
       }
@@ -3550,8 +3749,8 @@
       if (caustic) {
         gsap.to(caustic, {
           xPercent: 7,
-          opacity: 0.24,
-          duration: 5.6,
+          opacity: 0.14,
+          duration: 6.2,
           repeat: -1,
           yoyo: true,
           ease: "sine.inOut"
@@ -3559,8 +3758,8 @@
       }
 
       gsap.to(bottomLiquidNavEl, {
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.58), inset 0 -10px 22px rgba(255,255,255,0.06), inset 0 0 0 1px rgba(255,255,255,0.10), 0 12px 34px rgba(0,0,0,0.15), 0 2px 10px rgba(0,0,0,0.08)",
-        duration: 3.6,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -8px 16px rgba(255,255,255,0.015), inset 0 0 0 1px rgba(255,255,255,0.03), 0 8px 20px rgba(0,0,0,0.07), 0 1px 6px rgba(0,0,0,0.03)",
+        duration: 3.8,
         repeat: -1,
         yoyo: true,
         ease: "sine.inOut"
@@ -3633,6 +3832,7 @@
 
       setCookieButtonVisibility(bellBtnEl, enabled, { animate, displayValue: "flex" });
       setCookieButtonVisibility(remindersDesktopBtn, enabled, { animate, displayValue: "inline-flex" });
+      requestAnimationFrame(() => layoutBottomLiquidNav({ animate }));
     }
 
     function escapeHtml(value) {
@@ -4267,24 +4467,28 @@ forgotPw.onclick = () => {
       if (addBtn.dataset.mode === "notifications") {
         addBtn.innerHTML = '<i data-lucide="house-heart"></i>';
         lucide.createIcons();
+        requestAnimationFrame(() => layoutBottomLiquidNav({ animate: true }));
         return;
       }
 
       if (addBtn.dataset.mode === "stats") {
         addBtn.innerHTML = '<i data-lucide="house-heart"></i>';
         lucide.createIcons();
+        requestAnimationFrame(() => layoutBottomLiquidNav({ animate: true }));
         return;
       }
 
       if (addBtn.dataset.mode === "settings") {
         addBtn.innerHTML = '<i data-lucide="house-heart"></i>';
         lucide.createIcons();
+        requestAnimationFrame(() => layoutBottomLiquidNav({ animate: true }));
         return;
       }
 
       if (addBtn.dataset.mode === "changes") {
         addBtn.innerHTML = '<i data-lucide="house-heart"></i>';
         lucide.createIcons();
+        requestAnimationFrame(() => layoutBottomLiquidNav({ animate: true }));
         return;
       }
 
@@ -4295,6 +4499,7 @@ forgotPw.onclick = () => {
       }
 
       lucide.createIcons();
+      requestAnimationFrame(() => layoutBottomLiquidNav({ animate: true }));
     }
 
     
