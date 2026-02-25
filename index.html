@@ -11,6 +11,16 @@
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="mobile-web-app-capable" content="yes">
       
+<!-- OneSignal -->
+      <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "c3cfa0bc-4faf-48c3-a00f-f5ce23924559",
+    });
+  });
+</script>
           
   <!-- Lucide -->
   <script src="https://unpkg.com/lucide@latest"></script>
