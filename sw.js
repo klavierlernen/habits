@@ -1,4 +1,16 @@
 // -----------------------------------------------------
+// OneSignal SDK (optional)
+// Load first so OneSignal can attach its own push handlers.
+// This SW can still handle your custom push payloads below.
+// -----------------------------------------------------
+try {
+  importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+} catch (err) {
+  // Keep the app SW functional even if OneSignal is unavailable.
+  console.warn("OneSignal SW SDK konnte nicht geladen werden:", err);
+}
+
+// -----------------------------------------------------
 // Cache Setup (optional)
 // -----------------------------------------------------
 const CACHE_NAME = "consistency-cache-v1";
@@ -31,6 +43,28 @@ self.addEventListener('message', event => {
   }
 });
 
+function isOneSignalPushPayload(data) {
+  if (!data || typeof data !== "object") return false;
+  // Common OneSignal payload markers on web push payloads.
+  return Boolean(
+    data.custom ||
+    data.os_data ||
+    data.notificationId ||
+    data.web_push_topic
+  );
+}
+
+function isOneSignalNotification(notification) {
+  const data = notification?.data;
+  if (!data || typeof data !== "object") return false;
+  return Boolean(
+    data.custom ||
+    data.os_data ||
+    data.notificationId ||
+    data.onesignal
+  );
+}
+
 // -----------------------------------------------------
 // HANDLE PUSH EVENTS
 // -----------------------------------------------------
@@ -41,6 +75,11 @@ self.addEventListener("push", event => {
     data = event.data ? event.data.json() : {};
   } catch (e) {
     data = { title: "Hinweis", body: "" };
+  }
+
+  // Let OneSignal's own SW handler manage OneSignal pushes to avoid duplicates.
+  if (isOneSignalPushPayload(data)) {
+    return;
   }
 
   const title = data.title || "Hinweis";
@@ -62,6 +101,11 @@ self.addEventListener("push", event => {
 // Notification Click → öffne App / fokussiere App
 // -----------------------------------------------------
 self.addEventListener("notificationclick", event => {
+  // Let OneSignal handle clicks for OneSignal-generated notifications.
+  if (isOneSignalNotification(event.notification)) {
+    return;
+  }
+
   event.notification.close();
 
   const targetUrl = event.notification.data?.url || "/habits/";
