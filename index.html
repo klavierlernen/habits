@@ -2641,29 +2641,11 @@
       otherUser: 30000
     };
 
-    // unread badge comes from DB
     let unreadNotificationCount = 0;
 
-    // ================================
-    // Notification bell polling
-    // ================================
-    let notificationPollTimer = null;
-
-    function startNotificationPolling(intervalMs = 8000) {
-      stopNotificationPolling();
-      notificationPollTimer = setInterval(async () => {
-        if (!currentUser) return;
-        await loadUnreadNotificationCount();
-        refreshBellIcon();
-      }, intervalMs);
-    }
-
-    function stopNotificationPolling() {
-      if (notificationPollTimer) {
-        clearInterval(notificationPollTimer);
-        notificationPollTimer = null;
-      }
-    }
+    // Legacy Supabase notification polling removed (OneSignal is used instead).
+    function startNotificationPolling() {}
+    function stopNotificationPolling() {}
 
     const avatarOptions = [
       "https://raw.githubusercontent.com/lillyapp/lillyapp/main/avatar04.png",
@@ -2928,15 +2910,6 @@
       if (!avatarUrl) showAvatarPicker();
     }
 
-    // Push/Notification capability
-    const supportsPush = (
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window
-    );
-    const PUSH_API_BASE = "https://habits-push-worker.9dgw4nf86r.workers.dev";
-    let pushVapidPublicKeyCache = null;
-
     const APP_VERSION = 1;
 
     let deleteTimeout = null;
@@ -2993,22 +2966,8 @@
     }
 
     async function requestNotificationPermissionOnce() {
-      if (!supportsPush) return;
-      if (localStorage.getItem(PERM_KEYS.notifications) === "1") {
-        await ensurePushInfoRow();
-        if (Notification.permission === "granted") {
-          await registerPushSubscription();
-        }
-        return;
-      }
-
-      const res = await Notification.requestPermission();
+      // Legacy custom push flow removed. OneSignal opt-in is handled from Settings.
       localStorage.setItem(PERM_KEYS.notifications, "1");
-      await ensurePushInfoRow();
-
-      if (res === "granted") {
-        await registerPushSubscription();
-      }
     }
 
     async function requestMotionPermissionOnce() {
@@ -3023,7 +2982,6 @@
     }
 
     async function requestIntroPermissionsOnce() {
-      await requestNotificationPermissionOnce();
       await requestMotionPermissionOnce();
     }
 
@@ -3660,19 +3618,6 @@
     });
     
     bellBtnEl.addEventListener("click", async () => {
-
-      // keep DB in sync even if already decided
-      if (supportsPush) {
-        await ensurePushInfoRow();
-        if (Notification.permission === "granted") {
-          await registerPushSubscription();
-        }
-      }
-
-      // Update badge before opening
-      await loadUnreadNotificationCount();
-      refreshBellIcon();
-
       await renderNotifications();
       lucide.createIcons({ scope: notificationsViewEl });
 
@@ -4489,10 +4434,7 @@ forgotPw.onclick = () => {
       const { data } = await supabaseClient.auth.getUser();
       currentUser = data.user;
       await loadUserSettings();
-      await ensurePushInfoRow();
-      await loadUnreadNotificationCount();
       refreshBellIcon();
-      startNotificationPolling();
 
       setupRealtime();
       setupShakeDetection();
@@ -4513,10 +4455,7 @@ forgotPw.onclick = () => {
       if (data.user) {
         currentUser = data.user;
         await loadUserSettings();
-        await ensurePushInfoRow();
-        await loadUnreadNotificationCount();
         refreshBellIcon();
-        startNotificationPolling();
 
         setupRealtime();
         setupShakeDetection();
@@ -4742,131 +4681,24 @@ forgotPw.onclick = () => {
 
     
     // -------------------------------
-    // Notifications / Push (DB-backed)
+    // Notifications / Push (legacy Supabase flow removed)
     // -------------------------------
-
-    async function ensurePushInfoRow() {
-      if (!currentUser) return;
-      const uid = currentUser.id;
-
-      const permission_state =
-        !supportsPush ? "unsupported" :
-        (Notification.permission === "granted" ? "granted" :
-         Notification.permission === "denied" ? "denied" : "unknown");
-
-      const { error } = await supabaseClient
-        .from("push_info")
-        .upsert({
-          user_id: uid,
-          permission_state,
-          platform_capabilities: {
-            supportsPush,
-            userAgent: navigator.userAgent || ""
-          }
-        });
-
-      if (error) console.error("push_info upsert error:", error);
-    }
+    async function ensurePushInfoRow() { return; }
     
     async function loadUnreadNotificationCount() {
-      if (!currentUser) return 0;
-      const uid = currentUser.id;
-
-      const { count, error } = await supabaseClient
-        .from("notification_message")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", uid)
-        .is("read_at", null);
-
-      if (error) {
-        console.error("unread count error:", error);
-        return 0;
-      }
-
-      unreadNotificationCount = count || 0;
-      return unreadNotificationCount;
+      unreadNotificationCount = 0;
+      return 0;
     }
 
-    async function loadNotifications(limit = 30) {
-      if (!currentUser) return [];
-      const uid = currentUser.id;
-
-      const { data, error } = await supabaseClient
-        .from("notification_message")
-        .select("id, type, title, body, payload, created_at, read_at")
-        .eq("user_id", uid)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        console.error("loadNotifications error:", error);
-        return [];
-      }
-      return data || [];
+    async function loadNotifications() {
+      return [];
     }
 
     async function markAllNotificationsRead() {
-      if (!currentUser) return;
-      const uid = currentUser.id;
-
-      const { error } = await supabaseClient
-        .from("notification_message")
-        .update({ read_at: new Date().toISOString() })
-        .eq("user_id", uid)
-        .is("read_at", null);
-
-      if (error) {
-        console.error("markAllNotificationsRead error:", error);
-        return;
-      }
-
       unreadNotificationCount = 0;
     }
 
-    async function fetchPushVapidPublicKey() {
-      if (pushVapidPublicKeyCache) return pushVapidPublicKeyCache;
-      const res = await fetch(`${PUSH_API_BASE}/vapid-public-key`, { method: "GET" });
-      if (!res.ok) throw new Error(`vapid-public-key request failed (${res.status})`);
-      const data = await res.json();
-      if (!data?.publicKey) throw new Error("vapid-public-key missing publicKey");
-      pushVapidPublicKeyCache = data.publicKey;
-      return pushVapidPublicKeyCache;
-    }
-
-    // NOTE: Push subscription requires HTTPS (or localhost). It will not work on file://
-    async function registerPushSubscription() {
-      if (!supportsPush) return;
-      if (!currentUser) return;
-      if (Notification.permission !== "granted") return;
-
-      try {
-        const reg = await navigator.serviceWorker.register("/habits/sw.js");
-        const publicKey = await fetchPushVapidPublicKey();
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub) {
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey)
-          });
-        }
-
-        const res = await fetch(`${PUSH_API_BASE}/subscribe`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: currentUser.id,
-            subscription: sub.toJSON()
-          })
-        });
-
-        if (!res.ok) {
-          const body = await res.text();
-          throw new Error(`worker /subscribe failed (${res.status}): ${body}`);
-        }
-      } catch (e) {
-        console.error("registerPushSubscription error:", e);
-      }
-    }
+    async function registerPushSubscription() { return; }
     
     
     function refreshBellIcon() {
@@ -8039,75 +7871,7 @@ if ("serviceWorker" in navigator) {
   }
 }
     
-    function setupPushRealtime() {
-      if (!currentUser) return;
-
-      if (Notification.permission !== "granted") {
-        return;
-      }
-
-      supabaseClient
-        .channel('push-info-channel')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'push_info',
-            filter: `user_id=eq.${currentUser.id}`
-          },
-          (payload) => {
-            const data = payload.new;
-            if (!data) return;
-
-            try {
-              new Notification(data.title || "Neue Nachricht", {
-                body: data.body || ""
-              });
-            } catch (e) {
-              console.error("Notification error:", e);
-            }
-          }
-        )
-        .subscribe();
-    }
-
-    // Nach Login starten:
-    setupPushRealtime();
-    
-    
-    if (currentUser) {
-      supabaseClient
-        .channel('push-info-channel')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'push_info',
-            filter: `user_id=eq.${currentUser.id}`
-          },
-          (payload) => {
-            console.log("📨 PUSH via Realtime empfangen:", payload);
-
-            const data = payload.new;
-            if (!data) return;
-
-            if (Notification.permission !== "granted") return;
-
-            try {
-              new Notification(data.title || "Neue Nachricht", {
-                body: data.body || ""
-              });
-              console.log("🔔 Notification erzeugt:", data.title, data.body);
-
-            } catch (e) {
-              console.error("❌ Notification error:", e);
-            }
-          }
-        )
-        .subscribe();
-    }
+    // Legacy Supabase push realtime removed. Notifications are handled via OneSignal.
       
       async function checkMedalScreen() {
         if (!currentUser) return;
