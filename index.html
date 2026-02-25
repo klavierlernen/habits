@@ -18,6 +18,9 @@
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "c3cfa0bc-4faf-48c3-a00f-f5ce23924559",
+      serviceWorkerPath: "/habits/sw.js",
+      serviceWorkerParam: { scope: "/habits/" },
+      notifyButton: { enable: false }
     });
   });
 </script>
@@ -2736,6 +2739,89 @@
       return { error };
     }
 
+    function getOneSignalInstance() {
+      return new Promise((resolve) => {
+        const queue = window.OneSignalDeferred = window.OneSignalDeferred || [];
+        queue.push(async (OneSignal) => resolve(OneSignal || null));
+      });
+    }
+
+    async function getNotificationSettingsState() {
+      if (location.protocol === "file:") {
+        return {
+          supported: false,
+          enabled: false,
+          permission: "default",
+          message: "Benachrichtigungen funktionieren nur über HTTPS oder localhost (nicht über file://)."
+        };
+      }
+
+      try {
+        const OneSignal = await getOneSignalInstance();
+        if (!OneSignal) {
+          return {
+            supported: false,
+            enabled: false,
+            permission: (typeof Notification !== "undefined" ? Notification.permission : "default"),
+            message: "OneSignal ist noch nicht geladen."
+          };
+        }
+
+        const pushSupported = await Promise.resolve(
+          OneSignal.Notifications?.isPushSupported?.() ?? false
+        );
+        if (!pushSupported) {
+          return {
+            supported: false,
+            enabled: false,
+            permission: (typeof Notification !== "undefined" ? Notification.permission : "default"),
+            message: "Web-Push wird auf diesem Gerät/Browser nicht unterstützt."
+          };
+        }
+
+        const permission =
+          OneSignal.Notifications?.permission ||
+          (typeof Notification !== "undefined" ? Notification.permission : "default");
+        const optedIn = Boolean(OneSignal.User?.PushSubscription?.optedIn);
+
+        let message = "";
+        if (permission === "denied") {
+          message = "Benachrichtigungen sind im Browser blockiert. Bitte im Browser wieder erlauben.";
+        } else if (optedIn) {
+          message = "Benachrichtigungen sind aktiviert.";
+        } else {
+          message = "Benachrichtigungen sind deaktiviert.";
+        }
+
+        return {
+          supported: true,
+          enabled: optedIn,
+          permission,
+          message
+        };
+      } catch (err) {
+        console.error("getNotificationSettingsState error:", err);
+        return {
+          supported: false,
+          enabled: false,
+          permission: (typeof Notification !== "undefined" ? Notification.permission : "default"),
+          message: "Benachrichtigungsstatus konnte nicht geladen werden."
+        };
+      }
+    }
+
+    async function enableOneSignalNotifications() {
+      const OneSignal = await getOneSignalInstance();
+      if (!OneSignal) throw new Error("OneSignal nicht verfügbar.");
+      await Promise.resolve(OneSignal.User?.PushSubscription?.optIn?.());
+    }
+
+    async function disableOneSignalNotifications() {
+      const OneSignal = await getOneSignalInstance();
+      if (!OneSignal) throw new Error("OneSignal nicht verfügbar.");
+      await Promise.resolve(OneSignal.User?.PushSubscription?.optOut?.());
+    }
+
     function getCardTitleColor(card) {
       if (!card) return "#666";
       const inputEl = card.querySelector(".card-input");
@@ -3222,6 +3308,15 @@
                 <button type="button" class="settings-segment-btn ${!cookieModeEnabled ? "is-active" : ""}" data-cookie-mode="off">Deaktiviert</button>
               </div>
             </div>
+            <div class="settings-subsection">
+              <div class="settings-subsection-title">Benachrichtigungen</div>
+              <p class="settings-copy">Aktiviere Push-Benachrichtigungen für Erinnerungen auf deinem Gerät.</p>
+              <div class="settings-segment" id="notificationModeGroup">
+                <button type="button" class="settings-segment-btn" id="settingsNotificationsOnBtn">Aktivieren</button>
+                <button type="button" class="settings-segment-btn" id="settingsNotificationsOffBtn">Deaktivieren</button>
+              </div>
+              <div class="settings-inline-note" id="settingsNotificationsInfo"></div>
+            </div>
             <div class="settings-status" id="settingsDisplayStatus"></div>
           </section>
 
@@ -3265,6 +3360,9 @@
       const displayStatus = settingsViewEl.querySelector("#settingsDisplayStatus");
       const accountStatus = settingsViewEl.querySelector("#settingsAccountStatus");
       const deleteStatus = settingsViewEl.querySelector("#settingsDeleteStatus");
+      const notificationsInfo = settingsViewEl.querySelector("#settingsNotificationsInfo");
+      const notificationsOnBtn = settingsViewEl.querySelector("#settingsNotificationsOnBtn");
+      const notificationsOffBtn = settingsViewEl.querySelector("#settingsNotificationsOffBtn");
 
       function setStatus(el, message = "", type = "") {
         if (!el) return;
@@ -3277,6 +3375,61 @@
       if (closeBtn) {
         closeBtn.addEventListener("click", () => closeSettingsPane());
       }
+
+      async function refreshNotificationControls() {
+        if (!notificationsOnBtn || !notificationsOffBtn) return;
+        const state = await getNotificationSettingsState();
+        const isEnabled = state.enabled === true;
+
+        notificationsOnBtn.classList.toggle("is-active", isEnabled);
+        notificationsOffBtn.classList.toggle("is-active", !isEnabled);
+
+        notificationsOnBtn.disabled = !state.supported || isEnabled;
+        notificationsOffBtn.disabled = !state.supported || !isEnabled;
+
+        if (notificationsInfo) {
+          notificationsInfo.textContent = state.message || "";
+        }
+      }
+
+      if (notificationsOnBtn) {
+        notificationsOnBtn.addEventListener("click", async () => {
+          setStatus(displayStatus, "", "");
+          try {
+            await enableOneSignalNotifications();
+            await refreshNotificationControls();
+            const state = await getNotificationSettingsState();
+            if (state.permission === "denied") {
+              setStatus(displayStatus, "Im Browser blockiert. Bitte Benachrichtigungen in den Browser-Einstellungen erlauben.", "error");
+            } else if (state.enabled) {
+              setStatus(displayStatus, "Benachrichtigungen aktiviert.", "success");
+            } else {
+              setStatus(displayStatus, "Benachrichtigungen konnten nicht aktiviert werden.", "error");
+            }
+          } catch (err) {
+            console.error("enable notifications error:", err);
+            setStatus(displayStatus, err?.message || "Benachrichtigungen konnten nicht aktiviert werden.", "error");
+            await refreshNotificationControls();
+          }
+        });
+      }
+
+      if (notificationsOffBtn) {
+        notificationsOffBtn.addEventListener("click", async () => {
+          setStatus(displayStatus, "", "");
+          try {
+            await disableOneSignalNotifications();
+            await refreshNotificationControls();
+            setStatus(displayStatus, "Benachrichtigungen deaktiviert.", "success");
+          } catch (err) {
+            console.error("disable notifications error:", err);
+            setStatus(displayStatus, err?.message || "Benachrichtigungen konnten nicht deaktiviert werden.", "error");
+            await refreshNotificationControls();
+          }
+        });
+      }
+
+      refreshNotificationControls();
 
       settingsViewEl.querySelectorAll("[data-display-mode]").forEach(btn => {
         btn.addEventListener("click", async () => {
